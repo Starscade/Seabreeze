@@ -8,7 +8,7 @@
         #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
     </style>
 </head>
-<body >
+<body style="cursor: crosshair;">
     <div id="ui">WASD: Move | Q/E: Up/Down | Left Click: Destroy | Right Click: Place</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
@@ -42,6 +42,7 @@
         const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
         const sun = new THREE.Mesh(sunGeo, sunMat);
         sun.position.set(100, 80, -200);
+        sunMat.fog = false; 
         scene.add(sun);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -49,6 +50,9 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
+
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
+        renderer.setClearColor(0x87CEEB);
 
         const ambientLight = new THREE.AmbientLight(0xcccccc, 0.9);
         scene.add(ambientLight);
@@ -74,39 +78,49 @@
         const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8a31 });
         const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
         const sandMat = new THREE.MeshLambertMaterial({ color: 0xedc9af });
-        const waterMat = new THREE.MeshLambertMaterial({ color: 0x0077be, transparent: true, opacity: 0.7 });
         
-        const blockGroups = { grass: [], dirt: [], sand: [], water: [] };
-        const size = 40;
-        const seed = Math.random() * 100;
+        // Navy blue water, slightly transparent but opaque enough to block the sky
+        const waterMat = new THREE.MeshLambertMaterial({ 
+            color: 0x001a33, 
+            transparent: true, 
+            opacity: 0.95 
+        });
         
-        // Simple Pseudo-Random Noise Function
-        function noise(x, z) {
-            return Math.sin(x * 0.1 + seed) * Math.cos(z * 0.1 + seed) + 
-                   Math.sin(x * 0.05 - seed) * Math.cos(z * 0.05 + seed) * 2;
+        const blockGroups = { grass: [], dirt: [], sand: [] };
+        const colliderWorld = [];
+
+        function simplexNoise(x, z, seed) {
+            return Math.sin(x * 0.1 + seed) * Math.cos(z * 0.1 + seed) * 2 +
+                   Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 4 +
+                   Math.sin(x * 0.02 + seed) * Math.sin(z * 0.02 + seed) * 6;
         }
 
-        for(let x = -size; x < size; x++) {
-            for(let z = -size; z < size; z++) {
-                const dist = Math.sqrt(x*x + z*z);
-                const n = noise(x, z);
-                const height = Math.floor(n * 3 + (15 - dist * 0.3));
+        function generateIsland(centerX, centerZ, radius, seedOffset) {
+            for(let x = -radius; x < radius; x++) {
+                for(let z = -radius; z < radius; z++) {
+                    const dist = Math.sqrt(x*x + z*z);
+                    if(dist > radius) continue;
+                    
+                    const noiseVal = simplexNoise(x + centerX, z + centerZ, seedOffset);
+                    const mask = Math.max(0, (radius - dist) / radius);
+                    const height = Math.floor(noiseVal * mask * 2 + (mask * 2));
 
-                for(let y = -5; y <= height; y++) {
-                    let type = 'dirt';
-                    if (y === height && y > -1) type = 'grass';
-                    if (y === height && y <= -1) type = 'sand';
-                    if (type) blockGroups[type]?.push({x, y, z});
+                    for(let y = -10; y <= height; y++) {
+                        let type = 'dirt';
+                        if (y === height && y > -1) type = 'grass';
+                        else if (y === height || (y > -2 && y < height && height < 1)) type = 'sand';
+                        
+                        const pos = {x: x + centerX, y, z: z + centerZ};
+                        blockGroups[type].push(pos);
+                    }
                 }
             }
         }
 
-        // Infinite Ocean Floor (Plane)
-        const oceanGeo = new THREE.PlaneGeometry(2000, 2000);
-        const oceanPlane = new THREE.Mesh(oceanGeo, waterMat);
-        oceanPlane.rotation.x = -Math.PI / 2;
-        oceanPlane.position.y = -1;
-        scene.add(oceanPlane);
+        generateIsland(0, 0, 25, Math.random() * 100);
+        generateIsland(50, 40, 10, Math.random() * 100);
+        generateIsland(-60, -20, 12, Math.random() * 100);
+        generateIsland(30, -60, 8, Math.random() * 100);
 
         function createInstancedMesh(material, blocks) {
             if (blocks.length === 0) return null;
@@ -120,13 +134,10 @@
             return mesh;
         }
 
-        const instancedMeshes = {
-            grass: createInstancedMesh(grassMat, blockGroups.grass),
-            dirt: createInstancedMesh(dirtMat, blockGroups.dirt),
-            sand: createInstancedMesh(sandMat, blockGroups.sand)
-        };
+        createInstancedMesh(grassMat, blockGroups.grass);
+        createInstancedMesh(dirtMat, blockGroups.dirt);
+        createInstancedMesh(sandMat, blockGroups.sand);
 
-        const colliderWorld = [];
         Object.keys(blockGroups).forEach(type => {
             blockGroups[type].forEach(p => {
                 const dummy = new THREE.Mesh(geometry);
@@ -135,6 +146,12 @@
                 colliderWorld.push(dummy);
             });
         });
+
+        const oceanGeo = new THREE.PlaneGeometry(2000, 2000);
+        const oceanPlane = new THREE.Mesh(oceanGeo, waterMat);
+        oceanPlane.rotation.x = -Math.PI / 2;
+        oceanPlane.position.y = -1;
+        scene.add(oceanPlane);
 
         camera.position.set(0, 10, 0);
 
@@ -184,6 +201,17 @@
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
+            
+            if (camera.position.y < -1) {
+                scene.fog = new THREE.FogExp2(0x000b1a, 0.3); // Very dense dark navy fog underwater
+                renderer.setClearColor(0x000b1a);
+                sky.visible = false; // Hide skybox when underwater
+            } else {
+                scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
+                renderer.setClearColor(0x87CEEB);
+                sky.visible = true;
+            }
+
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
