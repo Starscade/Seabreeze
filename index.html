@@ -479,10 +479,11 @@
             const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
             const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
             
-            if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * 40 * delta));
-            if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * 40 * delta));
-            if (moveUp) velocity.add(up.clone().multiplyScalar(40 * delta));
-            if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
+            // Doubled speed from 40 to 80
+            if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * 80 * delta));
+            if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * 80 * delta));
+            if (moveUp) velocity.add(up.clone().multiplyScalar(80 * delta));
+            if (moveDown) velocity.add(up.clone().multiplyScalar(-80 * delta));
             
             camera.position.add(velocity.clone().multiplyScalar(delta));
             
