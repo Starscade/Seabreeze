@@ -162,6 +162,31 @@
 		const sky = new THREE.Mesh(skyGeo, skyMat)
 		scene.add(sky)
 
+		// STARS
+		const starGeo = new THREE.BufferGeometry()
+		const starCount = 100
+		const starPositions = new Float32Array(starCount * 3)
+		for (let i = 0; i < starCount; i++) {
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.acos((Math.random() * 2) - 1);
+			const radius = 480; // Slightly larger than sky sphere to prevent z-fighting
+			starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+			starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+			starPositions[i * 3 + 2] = radius * Math.cos(phi);
+		}
+		starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
+		const starMat = new THREE.PointsMaterial({
+			color: 0xffffff,
+			size: 2,
+			sizeAttenuation: false,
+			transparent: true,
+			opacity: 0,
+			depthWrite: false,
+		})
+		const stars = new THREE.Points(starGeo, starMat)
+		stars.material.fog = false
+		scene.add(stars)
+
 		const sunGeo = new THREE.SphereGeometry(24, 16, 16)
 		const sunMat = new THREE.MeshBasicMaterial({
 			color: 0xFFFFAA,
@@ -316,7 +341,6 @@
 
 		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1)
 
-		// Foliage materials
 		const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
 		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
 		const bushMat = new THREE.MeshLambertMaterial({ color: 0x32CD32 })
@@ -375,14 +399,11 @@
 				else c.copy(colorDirt)
 				colors.push(c.r, c.g, c.b)
 
-				// Random Foliage Spawning
 				if (Math.random() < 0.02) {
 					if (height > 1) {
-						// Palm tree on grass
 						const palm = createPalmTree(worldX, height, worldZ)
 						chunkGroup.add(palm)
 					} else if (height > -1 && Math.random() < 0.3) {
-						// Occasional palm on sand
 						const palm = createPalmTree(worldX, height, worldZ)
 						chunkGroup.add(palm)
 					}
@@ -585,12 +606,10 @@
 			const time = performance.now()
 			const delta = (time - prevTime) / 1000
 
-			// DAY NIGHT CYCLE (24 seconds)
 			const cycleDuration = 24000
 			const cycleProgress = (time % cycleDuration) / cycleDuration
 			const angle = cycleProgress * Math.PI * 2
 
-			// Sun position
 			const sunDist = 300
 			const sunX = Math.cos(angle) * sunDist
 			const sunY = Math.sin(angle) * sunDist
@@ -598,14 +617,12 @@
 			sun.position.copy(camera.position).add(new THREE.Vector3(sunX, sunY, sunZ))
 			directionalLight.position.copy(sun.position)
 
-			// Lighting and Sky Colors
 			const sunHeight = Math.sin(angle)
 			const dayIntensity = Math.max(0, sunHeight)
 
 			ambientLight.intensity = 0.2 + dayIntensity * 1.8
 			directionalLight.intensity = dayIntensity * 2.0
 
-			// Define the palette
 			const nightSky = new THREE.Color(0x0a0230)
 			const nightHorizon = new THREE.Color(0x063768)
 			const sunriseSky = new THREE.Color(0x4b306d)
@@ -619,7 +636,6 @@
 			let currentHorizon = new THREE.Color()
 
 			if (sunHeight > 0.2) {
-				// Full Day
 				currentSky.lerpColors(sunriseSky, daySky, (sunHeight - 0.2) / 0.8)
 				currentHorizon.lerpColors(
 					sunriseHorizon,
@@ -627,18 +643,18 @@
 					(sunHeight - 0.2) / 0.8,
 				)
 			} else if (sunHeight > -0.2) {
-				// Transition (Sunrise/Sunset)
 				const t = (sunHeight + 0.2) / 0.4
 				currentSky.lerpColors(nightSky, sunriseSky, t)
 				currentHorizon.lerpColors(nightHorizon, sunriseHorizon, t)
 			} else {
-				// Full Night
 				currentSky.copy(nightSky)
 				currentHorizon.copy(nightHorizon)
 			}
 
 			skyMat.uniforms.uSkyColor.value.copy(currentSky)
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
+
+			starMat.opacity = Math.max(0, Math.min(1, -sunHeight));
 
 			sun.visible = sunHeight > -0.1
 
@@ -664,6 +680,7 @@
 				scene.fog = new THREE.FogExp2(currentUnderwaterColor, 0.1)
 				renderer.setClearColor(currentUnderwaterColor)
 				sky.visible = false
+				stars.visible = false
 				diveLight.visible = true
 				diveLight.position.copy(camera.position)
 				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(
@@ -677,6 +694,7 @@
 				scene.fog = new THREE.FogExp2(fogColor, 0.01)
 				renderer.setClearColor(fogColor)
 				sky.visible = true
+				stars.visible = true
 				diveLight.visible = false
 				terrainClippingPlane.constant = -1
 				underwaterMaterial.uniforms.uUnderwater.value = 0.0
@@ -719,6 +737,7 @@
 
 			camera.position.copy(nextPos)
 			sky.position.copy(camera.position)
+			stars.position.copy(camera.position)
 
 			updateChunks()
 			updateHUD()
