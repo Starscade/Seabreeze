@@ -314,6 +314,42 @@
 
 		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1)
 
+		// Foliage materials
+		const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
+		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
+		const bushMat = new THREE.MeshLambertMaterial({ color: 0x32CD32 })
+
+		function createPalmTree(x, y, z) {
+			const group = new THREE.Group()
+			const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 5, 8)
+			const trunk = new THREE.Mesh(trunkGeo, trunkMat)
+			trunk.position.y = 2.5
+			group.add(trunk)
+
+			for (let i = 0; i < 6; i++) {
+				const leafGeo = new THREE.SphereGeometry(1.5, 8, 8)
+				const leaf = new THREE.Mesh(leafGeo, leafMat)
+				leaf.scale.set(1, 0.2, 0.5)
+				leaf.position.set(
+					Math.cos(i * Math.PI / 3) * 1,
+					5,
+					Math.sin(i * Math.PI / 3) * 1
+				)
+				leaf.rotation.set(0.5, i * Math.PI / 3, 0)
+				group.add(leaf)
+			}
+			group.position.set(x, y, z)
+			return group
+		}
+
+		function createBush(x, y, z) {
+			const bushGeo = new THREE.SphereGeometry(0.8, 6, 6)
+			const bush = new THREE.Mesh(bushGeo, bushMat)
+			bush.position.set(x, y + 0.4, z)
+			bush.scale.set(1, 0.7, 1)
+			return bush
+		}
+
 		function createChunk(cx, cz) {
 			const geo = new THREE.PlaneGeometry(
 				CHUNK_SIZE,
@@ -324,6 +360,8 @@
 			geo.rotateX(-Math.PI / 2)
 			const vertices = geo.attributes.position.array
 			const colors = []
+			const chunkGroup = new THREE.Group()
+
 			for (let i = 0; i < vertices.length; i += 3) {
 				const worldX = vertices[i] + cx * CHUNK_SIZE
 				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE
@@ -334,6 +372,22 @@
 				else if (height > -1) c.copy(colorSand)
 				else c.copy(colorDirt)
 				colors.push(c.r, c.g, c.b)
+
+				// Random Foliage Spawning
+				if (Math.random() < 0.02) {
+					if (height > 1) {
+						// Palm tree on grass
+						const palm = createPalmTree(worldX, height, worldZ)
+						chunkGroup.add(palm)
+					} else if (height > -1 && Math.random() < 0.3) {
+						// Occasional palm on sand
+						const palm = createPalmTree(worldX, height, worldZ)
+						chunkGroup.add(palm)
+					}
+				}
+				if (Math.random() < 0.05 && height > 1) {
+					chunkGroup.add(createBush(worldX, height, worldZ))
+				}
 			}
 			geo.computeVertexNormals()
 			geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
@@ -345,8 +399,12 @@
 			})
 			const mesh = new THREE.Mesh(geo, mat)
 			mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
-			scene.add(mesh)
-			return mesh
+			
+			const container = new THREE.Group()
+			container.add(mesh)
+			container.add(chunkGroup)
+			scene.add(container)
+			return container
 		}
 
 		function updateChunks() {
@@ -358,15 +416,17 @@
 					if (!chunks.has(key)) chunks.set(key, createChunk(x, z))
 				}
 			}
-			for (const [key, mesh] of chunks.entries()) {
+			for (const [key, group] of chunks.entries()) {
 				const [cx, cz] = key.split(',').map(Number)
 				if (
 					Math.abs(cx - px) > RENDER_DISTANCE + 1 ||
 					Math.abs(cz - pz) > RENDER_DISTANCE + 1
 				) {
-					scene.remove(mesh)
-					mesh.geometry.dispose()
-					mesh.material.dispose()
+					scene.remove(group)
+					group.traverse(child => {
+						if (child.geometry) child.geometry.dispose()
+						if (child.material) child.material.dispose()
+					})
 					chunks.delete(key)
 				}
 			}
