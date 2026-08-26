@@ -14,9 +14,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
     
     <script>
-        // Custom PointerLock implementation to avoid external module dependency
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        
+        // Day-time Gradient Sky
+        const vertexShader = `
+            varying vec3 vWorldPosition;
+            void main() {
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const fragmentShader = `
+            varying vec3 vWorldPosition;
+            void main() {
+                float h = normalize(vWorldPosition).y;
+                vec3 skyColor = vec3(0.529, 0.808, 0.922);
+                vec3 horizonColor = vec3(0.7, 0.85, 1.0);
+                gl_FragColor = vec4(mix(horizonColor, skyColor, max(h, 0.0)), 1.0);
+            }
+        `;
+        const skyGeo = new THREE.SphereGeometry(500, 32, 15);
+        const skyMat = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            side: THREE.BackSide
+        });
+        const sky = new THREE.Mesh(skyGeo, skyMat);
+        scene.add(sky);
+
+        // Sun
+        const sunGeo = new THREE.SphereGeometry(5, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        sun.position.set(100, 80, -200);
+        scene.add(sun);
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -25,10 +58,9 @@
         const ambientLight = new THREE.AmbientLight(0xcccccc, 0.9);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        directionalLight.position.set(10, 20, 10);
+        directionalLight.position.copy(sun.position);
         scene.add(directionalLight);
 
-        // Simple First Person Controls
         let yaw = 0, pitch = 0;
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body) {
