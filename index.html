@@ -6,6 +6,27 @@
         body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; touch-action: none; }
         canvas { display: block; }
         #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; font-size: 14px; }
+        #hud-stats { 
+            position: absolute; 
+            top: 10px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            color: white; 
+            text-shadow: 1px 1px 2px black; 
+            pointer-events: none; 
+            text-align: center; 
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #compass { 
+            font-weight: bold; 
+            font-size: 18px; 
+            letter-spacing: 2px; 
+            margin-bottom: 5px;
+        }
+        #altimeter { 
+            font-size: 14px; 
+            opacity: 0.9;
+        }
         .joystick-container { 
             position: absolute; 
             bottom: 40px; 
@@ -62,6 +83,11 @@
 </head>
 <body id="main-body">
     <div id="ui">WASD/Joy: Move | Q/E: Up/Down</div>
+    
+    <div id="hud-stats">
+        <div id="compass">N</div>
+        <div id="altimeter">ALT: 0m</div>
+    </div>
     
     <div id="fs-btn" class="btn">FULL</div>
 
@@ -346,6 +372,24 @@
             }
         });
 
+        const compassEl = document.getElementById('compass');
+        const altEl = document.getElementById('altimeter');
+
+        function updateHUD() {
+            // Altimeter
+            altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`;
+            
+            // Compass
+            const degrees = (yaw * 180 / Math.PI) % 360;
+            const normalizedDeg = (360 - degrees) % 360;
+            let dir = "N";
+            if (normalizedDeg > 337.5 || normalizedDeg <= 22.5) dir = "N";
+            else if (normalizedDeg > 22.5 && normalizedDeg <= 157.5) dir = "E";
+            else if (normalizedDeg > 157.5 && normalizedDeg <= 222.5) dir = "S";
+            else if (normalizedDeg > 222.5 && normalizedDeg <= 337.5) dir = "W";
+            compassEl.textContent = dir;
+        }
+
         let prevTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
@@ -399,6 +443,7 @@
             camera.position.add(velocity.clone().multiplyScalar(delta));
             
             updateChunks();
+            updateHUD();
             renderer.render(scene, camera);
             prevTime = time;
         }
