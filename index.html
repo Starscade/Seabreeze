@@ -269,15 +269,22 @@
         function setupJoystick(containerId, knobId, callback) {
             const container = document.getElementById(containerId);
             const knob = document.getElementById(knobId);
-            let active = false;
+            let activeTouchId = null;
 
             const handleTouch = (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
+                let touch = null;
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].identifier === activeTouchId) {
+                        touch = e.touches[i];
+                        break;
+                    }
+                }
+                if (!touch) return;
+
                 const rect = container.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                
                 let dx = touch.clientX - centerX;
                 let dy = touch.clientY - centerY;
                 const distance = Math.sqrt(dx*dx + dy*dy);
@@ -292,12 +299,25 @@
                 callback(dx / maxRadius, dy / maxRadius);
             };
 
-            container.addEventListener('touchstart', (e) => { active = true; handleTouch(e); });
-            container.addEventListener('touchmove', (e) => { if(active) handleTouch(e); });
-            container.addEventListener('touchend', () => { 
-                active = false; 
-                knob.style.transform = `translate(0, 0)`; 
-                callback(0, 0); 
+            container.addEventListener('touchstart', (e) => { 
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                activeTouchId = touch.identifier;
+                handleTouch(e); 
+            });
+
+            container.addEventListener('touchmove', (e) => { 
+                if(activeTouchId !== null) handleTouch(e); 
+            }, { passive: false });
+
+            container.addEventListener('touchend', (e) => { 
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        activeTouchId = null;
+                        knob.style.transform = `translate(0, 0)`; 
+                        callback(0, 0);
+                    }
+                }
             });
         }
 
