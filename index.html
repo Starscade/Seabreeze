@@ -46,6 +46,10 @@
 			font-size: 14px;
 			opacity: 0.9;
 		}
+		#game-clock {
+			font-size: 14px;
+			opacity: 0.9;
+		}
 		.joystick-container {
 			position: absolute;
 			bottom: 40px;
@@ -111,6 +115,7 @@
 		<div id="hud-stats">
 			<div id="compass">N</div>
 			<div id="altimeter">ALT: 0m</div>
+			<div id="game-clock">00:00</div>
 		</div>
 
 		<div id="fs-btn" class="btn">FULL</div>
@@ -167,15 +172,15 @@
 		const starCount = 100
 		const starPositions = new Float32Array(starCount * 3)
 		for (let i = 0; i < starCount; i++) {
-			const theta = Math.random() * Math.PI * 2;
-			const phi = Math.acos((Math.random() * 2) - 1);
-			const radius = 480; 
-			starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-			starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-			starPositions[i * 3 + 2] = radius * Math.cos(phi);
+			const theta = Math.random() * Math.PI * 2
+			const phi = Math.acos((Math.random() * 2) - 1)
+			const radius = 480
+			starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
+			starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
+			starPositions[i * 3 + 2] = radius * Math.cos(phi)
 		}
 		starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
-		
+
 		const starMat = new THREE.ShaderMaterial({
 			uniforms: {
 				uOpacity: { value: 0 },
@@ -597,8 +602,9 @@
 
 		const compassEl = document.getElementById('compass')
 		const altEl = document.getElementById('altimeter')
+		const clockEl = document.getElementById('game-clock')
 
-		function updateHUD() {
+		function updateHUD(time) {
 			altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`
 			const degrees = (yaw * 180 / Math.PI) % 360
 			const normalizedDeg = (360 - degrees) % 360
@@ -614,6 +620,22 @@
 			else if (normalizedDeg >= 292.5 && normalizedDeg < 337.5) dir = 'NW'
 
 			compassEl.textContent = dir
+
+			const cycleDuration = 24000
+			const progress = (time % cycleDuration) / cycleDuration
+
+			// SIN(0) = 0 = Horizon.
+			// We want the point progress = 0 to be 6:00 AM.
+			// Clock time = (progress * 24) + 6.
+			let hours = (progress * 24) + 6
+			if (hours >= 24) hours -= 24
+
+			const totalMinutes = Math.floor(hours * 60)
+			const h = Math.floor(totalMinutes / 60)
+			const m = totalMinutes % 60
+			clockEl.textContent = `${h.toString().padStart(2, '0')}:${
+				m.toString().padStart(2, '0')
+			}`
 		}
 
 		let prevTime = performance.now()
@@ -670,7 +692,7 @@
 			skyMat.uniforms.uSkyColor.value.copy(currentSky)
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
 
-			starMat.uniforms.uOpacity.value = Math.max(0, Math.min(1, -sunHeight));
+			starMat.uniforms.uOpacity.value = Math.max(0, Math.min(1, -sunHeight))
 
 			sun.visible = sunHeight > -0.1
 
@@ -756,7 +778,7 @@
 			stars.position.copy(camera.position)
 
 			updateChunks()
-			updateHUD()
+			updateHUD(time)
 
 			renderer.setRenderTarget(renderTarget)
 			renderer.render(scene, camera)
