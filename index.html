@@ -1,12 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<link href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" rel="icon">
-	<title>&#127758;</title>
-	<style>
-		body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; touch-action: none; }
-		canvas { display: block; }
-		#ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; font-size: 14px; }
+	<head>
+		<link
+			href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+			rel="icon">
+		<title>&#127758;</title>
+		<style>
+		body {
+			margin: 0;
+			overflow: hidden;
+			background: #87CEEB;
+			font-family: sans-serif;
+			touch-action: none;
+		}
+		canvas {
+			display: block;
+		}
+		#ui {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			color: white;
+			text-shadow: 1px 1px 2px black;
+			pointer-events: none;
+			font-size: 14px;
+		}
 		#hud-stats {
 			position: absolute;
 			top: 10px;
@@ -38,8 +56,12 @@
 			touch-action: none;
 			border: 2px solid rgba(255,255,255,0.3);
 		}
-		#move-joy { left: 40px; }
-		#look-joy { right: 40px; }
+		#move-joy {
+			left: 40px;
+		}
+		#look-joy {
+			right: 40px;
+		}
 		.knob {
 			position: absolute;
 			top: 35px;
@@ -80,34 +102,36 @@
 			height: 50px;
 			border-radius: 8px;
 		}
-	</style>
-</head>
-<body id="main-body">
-	<div id="ui">WASD/Joy: Move | Q/E: Up/Down | Shift: Sprint | Click to Lock Mouse</div>
-	
-	<div id="hud-stats">
-		<div id="compass">N</div>
-		<div id="altimeter">ALT: 0m</div>
-	</div>
-	
-	<div id="fs-btn" class="btn">FULL</div>
+		</style>
+	</head>
+	<body id="main-body">
+		<div
+			id="ui">WASD/Joy: Move | Q/E: Up/Down | Shift: Sprint | Click to Lock Mouse</div>
 
-	<div id="move-joy" class="joystick-container">
-		<div class="knob" id="move-knob"></div>
-	</div>
-	<div id="look-joy" class="joystick-container">
-		<div class="knob" id="look-knob"></div>
-	</div>
-	<div id="height-controls">
-		<div class="btn" id="btn-up">UP</div>
-		<div class="btn" id="btn-down">DN</div>
-	</div>
+		<div id="hud-stats">
+			<div id="compass">N</div>
+			<div id="altimeter">ALT: 0m</div>
+		</div>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
-	
-	<script>
-		const scene = new THREE.Scene();
-		
+		<div id="fs-btn" class="btn">FULL</div>
+
+		<div id="move-joy" class="joystick-container">
+			<div class="knob" id="move-knob"></div>
+		</div>
+		<div id="look-joy" class="joystick-container">
+			<div class="knob" id="look-knob"></div>
+		</div>
+		<div id="height-controls">
+			<div class="btn" id="btn-up">UP</div>
+			<div class="btn" id="btn-down">DN</div>
+		</div>
+
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
+
+		<script>
+		const scene = new THREE.Scene()
+
 		const vertexShader = `
 			varying vec3 vWorldPosition;
 			void main() {
@@ -115,7 +139,7 @@
 				vWorldPosition = worldPosition.xyz;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 			}
-		`;
+		`
 		const fragmentShader = `
 			varying vec3 vWorldPosition;
 			void main() {
@@ -124,97 +148,105 @@
 				vec3 horizonColor = vec3(0.7, 0.85, 1.0);
 				gl_FragColor = vec4(mix(horizonColor, skyColor, max(h, 0.0)), 1.0);
 			}
-		`;
-		const skyGeo = new THREE.SphereGeometry(500, 32, 15);
-		const skyMat = new THREE.ShaderMaterial({ vertexShader, fragmentShader, side: THREE.BackSide });
-		const sky = new THREE.Mesh(skyGeo, skyMat);
-		scene.add(sky);
+		`
+		const skyGeo = new THREE.SphereGeometry(500, 32, 15)
+		const skyMat = new THREE.ShaderMaterial({
+			vertexShader,
+			fragmentShader,
+			side: THREE.BackSide,
+		})
+		const sky = new THREE.Mesh(skyGeo, skyMat)
+		scene.add(sky)
 
-		const sunGeo = new THREE.SphereGeometry(24, 16, 16);
+		const sunGeo = new THREE.SphereGeometry(24, 16, 16)
 		const sunMat = new THREE.MeshBasicMaterial({
 			color: 0xFFFFAA,
 			depthTest: false,
-		});
-		const sun = new THREE.Mesh(sunGeo, sunMat);
-		sun.position.set(100, 80, -100);
-		sun.material.fog = false;
-		scene.add(sun);
+		})
+		const sun = new THREE.Mesh(sunGeo, sunMat)
+		sun.position.set(100, 80, -100)
+		sun.material.fog = false
+		scene.add(sun)
 
-		const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-		const renderer = new THREE.WebGLRenderer({ antialias: true });
-		renderer.setSize(window.innerWidth, window.innerHeight);
-		renderer.setPixelRatio(window.devicePixelRatio);
-		renderer.localClippingEnabled = true;
-		document.body.appendChild(renderer.domElement);
+		const camera = new THREE.PerspectiveCamera(
+			75,
+			window.innerWidth / window.innerHeight,
+			0.1,
+			2000,
+		)
+		const renderer = new THREE.WebGLRenderer({ antialias: true })
+		renderer.setSize(window.innerWidth, window.innerHeight)
+		renderer.setPixelRatio(window.devicePixelRatio)
+		renderer.localClippingEnabled = true
+		document.body.appendChild(renderer.domElement)
 
-		scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
-		renderer.setClearColor(0x87CEEB);
+		scene.fog = new THREE.FogExp2(0x87CEEB, 0.01)
+		renderer.setClearColor(0x87CEEB)
 
-		const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
-		scene.add(ambientLight);
-		const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
-		directionalLight.position.copy(sun.position);
-		scene.add(directionalLight);
+		const ambientLight = new THREE.AmbientLight(0xffffff, 2.0)
+		scene.add(ambientLight)
+		const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0)
+		directionalLight.position.copy(sun.position)
+		scene.add(directionalLight)
 
-		const diveLight = new THREE.SpotLight(0xffffff, 33);
-		diveLight.distance = 60;
-		diveLight.angle = Math.PI / 2.5;
-		diveLight.penumbra = 0.2;
-		diveLight.decay = 1;
-		diveLight.visible = true;
-		scene.add(diveLight);
-		scene.add(diveLight.target);
+		const diveLight = new THREE.SpotLight(0xffffff, 33)
+		diveLight.distance = 60
+		diveLight.angle = Math.PI / 2.5
+		diveLight.penumbra = 0.2
+		diveLight.decay = 1
+		diveLight.visible = true
+		scene.add(diveLight)
+		scene.add(diveLight.target)
 
-		// --- PUFFY CLOUDS ---
 		const cloudMaterial = new THREE.MeshLambertMaterial({
 			color: 0xffffff,
 			transparent: false,
-			depthWrite: true
-		});
+			depthWrite: true,
+		})
 
-		const cloudGroup = new THREE.Group();
-		for(let i = 0; i < 30; i++) {
-			const cloudCluster = new THREE.Group();
-			const clusterX = (Math.random() - 0.5) * 1200;
-			const clusterZ = (Math.random() - 0.5) * 1200;
-			const clusterY = 60 + Math.random() * 60;
-			
-			const puffCount = 5 + Math.floor(Math.random() * 10);
-			for(let j = 0; j < puffCount; j++) {
-				const size = 10 + Math.random() * 20;
-				const puffGeo = new THREE.SphereGeometry(size, 8, 8);
-				const puff = new THREE.Mesh(puffGeo, cloudMaterial);
+		const cloudGroup = new THREE.Group()
+		for (let i = 0; i < 30; i++) {
+			const cloudCluster = new THREE.Group()
+			const clusterX = (Math.random() - 0.5) * 1200
+			const clusterZ = (Math.random() - 0.5) * 1200
+			const clusterY = 60 + Math.random() * 60
 
+			const puffCount = 5 + Math.floor(Math.random() * 10)
+			for (let j = 0; j < puffCount; j++) {
+				const size = 10 + Math.random() * 20
+				const puffGeo = new THREE.SphereGeometry(size, 8, 8)
+				const puff = new THREE.Mesh(puffGeo, cloudMaterial)
 				puff.material.fog = false
-				
 				puff.position.set(
 					(Math.random() - 0.5) * 40,
 					(Math.random() - 0.5) * 20,
-					(Math.random() - 0.5) * 40
-				);
+					(Math.random() - 0.5) * 40,
+				)
 				puff.scale.set(
 					0.7 + Math.random() * 1.3,
 					0.5 + Math.random() * 1.0,
-					0.7 + Math.random() * 1.3
-				);
-				cloudCluster.add(puff);
+					0.7 + Math.random() * 1.3,
+				)
+				cloudCluster.add(puff)
 			}
-			
-			cloudCluster.position.set(clusterX, clusterY, clusterZ);
-			cloudGroup.add(cloudCluster);
+			cloudCluster.position.set(clusterX, clusterY, clusterZ)
+			cloudGroup.add(cloudCluster)
 		}
-		scene.add(cloudGroup);
+		scene.add(cloudGroup)
 
-		const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-		const postScene = new THREE.Scene();
-		const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-		const postQuad = new THREE.PlaneGeometry(2, 2);
-		
+		const renderTarget = new THREE.WebGLRenderTarget(
+			window.innerWidth,
+			window.innerHeight,
+		)
+		const postScene = new THREE.Scene()
+		const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+		const postQuad = new THREE.PlaneGeometry(2, 2)
+
 		const underwaterMaterial = new THREE.ShaderMaterial({
 			uniforms: {
 				tDiffuse: { value: null },
 				uTime: { value: 0 },
-				uUnderwater: { value: 0 }
+				uUnderwater: { value: 0 },
 			},
 			vertexShader: `
 				varying vec2 vUv;
@@ -228,7 +260,6 @@
 				uniform float uTime;
 				uniform float uUnderwater;
 				varying vec2 vUv;
-
 				void main() {
 					vec2 uv = vUv;
 					if (uUnderwater > 0.5) {
@@ -243,26 +274,25 @@
 						gl_FragColor = texture2D(tDiffuse, uv);
 					}
 				}
-			`
-		});
-		const postMesh = new THREE.Mesh(postQuad, underwaterMaterial);
-		postScene.add(postMesh);
+			`,
+		})
+		const postMesh = new THREE.Mesh(postQuad, underwaterMaterial)
+		postScene.add(postMesh)
 
-		let yaw = 0, pitch = 0;
-		
+		let yaw = 0, pitch = 0
 		document.addEventListener('mousemove', (e) => {
 			if (document.pointerLockElement === document.body) {
-				yaw -= e.movementX * 0.002;
-				pitch -= e.movementY * 0.002;
-				pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-				camera.rotation.set(pitch, yaw, 0, 'YXZ');
+				yaw -= e.movementX * 0.002
+				pitch -= e.movementY * 0.002
+				pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch))
+				camera.rotation.set(pitch, yaw, 0, 'YXZ')
 			}
-		});
+		})
 
 		document.addEventListener('click', (e) => {
-			if (e.target.classList.contains('btn')) return;
-			document.body.requestPointerLock();
-		});
+			if (e.target.classList.contains('btn')) return
+			document.body.requestPointerLock()
+		})
 
 		function simplexNoise(x, z, seed) {
 			return (
@@ -270,305 +300,323 @@
 				Math.sin(x * 0.2 + seed * 1.1) * Math.cos(z * 0.2 + seed * 1.2) * 5 +
 				Math.sin(x * 0.01 + seed * 0.5) * Math.sin(z * 0.01 + seed * 0.8) * 20 +
 				Math.cos(x * 0.1 + z * 0.1 + seed) * 8
-			);
+			)
 		}
 
-		const CHUNK_SIZE = 64;
-		const CHUNK_RES = 32;
-		const RENDER_DISTANCE = 3;
-		const chunks = new Map();
-		const seedOffset = Math.random() * 1000;
-		const colorGrass = new THREE.Color(0x5db03a);
-		const colorSand = new THREE.Color(0xf0d0b0);
-		const colorDirt = new THREE.Color(0x9a5a2a);
+		const CHUNK_SIZE = 64
+		const CHUNK_RES = 32
+		const RENDER_DISTANCE = 3
+		const chunks = new Map()
+		const seedOffset = Math.random() * 1000
+		const colorGrass = new THREE.Color(0x5db03a)
+		const colorSand = new THREE.Color(0xf0d0b0)
+		const colorDirt = new THREE.Color(0x9a5a2a)
 
-		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1);
+		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1)
 
 		function createChunk(cx, cz) {
-			const geo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, CHUNK_RES, CHUNK_RES);
-			geo.rotateX(-Math.PI / 2);
-
-			const vertices = geo.attributes.position.array;
-			const colors = [];
-			
+			const geo = new THREE.PlaneGeometry(
+				CHUNK_SIZE,
+				CHUNK_SIZE,
+				CHUNK_RES,
+				CHUNK_RES,
+			)
+			geo.rotateX(-Math.PI / 2)
+			const vertices = geo.attributes.position.array
+			const colors = []
 			for (let i = 0; i < vertices.length; i += 3) {
-				const worldX = vertices[i] + cx * CHUNK_SIZE;
-				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE;
-				let height = simplexNoise(worldX, worldZ, seedOffset) - 15;
-				vertices[i + 1] = height;
-
-				const c = new THREE.Color();
-				if (height > 2) c.copy(colorGrass);
-				else if (height > -1) c.copy(colorSand);
-				else c.copy(colorDirt);
-				colors.push(c.r, c.g, c.b);
+				const worldX = vertices[i] + cx * CHUNK_SIZE
+				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE
+				let height = simplexNoise(worldX, worldZ, seedOffset) - 15
+				vertices[i + 1] = height
+				const c = new THREE.Color()
+				if (height > 2) c.copy(colorGrass)
+				else if (height > -1) c.copy(colorSand)
+				else c.copy(colorDirt)
+				colors.push(c.r, c.g, c.b)
 			}
-
-			geo.computeVertexNormals();
-			geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
+			geo.computeVertexNormals()
+			geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
 			const mat = new THREE.MeshLambertMaterial({
 				vertexColors: true,
 				flatShading: true,
 				side: THREE.DoubleSide,
-				clippingPlanes: [terrainClippingPlane]
-			});
-			const mesh = new THREE.Mesh(geo, mat);
-			mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
-			
-			scene.add(mesh);
-			return mesh;
+				clippingPlanes: [terrainClippingPlane],
+			})
+			const mesh = new THREE.Mesh(geo, mat)
+			mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
+			scene.add(mesh)
+			return mesh
 		}
 
 		function updateChunks() {
-			const px = Math.floor(camera.position.x / CHUNK_SIZE);
-			const pz = Math.floor(camera.position.z / CHUNK_SIZE);
-
+			const px = Math.floor(camera.position.x / CHUNK_SIZE)
+			const pz = Math.floor(camera.position.z / CHUNK_SIZE)
 			for (let x = px - RENDER_DISTANCE; x <= px + RENDER_DISTANCE; x++) {
 				for (let z = pz - RENDER_DISTANCE; z <= pz + RENDER_DISTANCE; z++) {
-					const key = `${x},${z}`;
-					if (!chunks.has(key)) {
-						chunks.set(key, createChunk(x, z));
-					}
+					const key = `${x},${z}`
+					if (!chunks.has(key)) chunks.set(key, createChunk(x, z))
 				}
 			}
-
 			for (const [key, mesh] of chunks.entries()) {
-				const [cx, cz] = key.split(',').map(Number);
-				if (Math.abs(cx - px) > RENDER_DISTANCE + 1 || Math.abs(cz - pz) > RENDER_DISTANCE + 1) {
-					scene.remove(mesh);
-					mesh.geometry.dispose();
-					mesh.material.dispose();
-					chunks.delete(key);
+				const [cx, cz] = key.split(',').map(Number)
+				if (
+					Math.abs(cx - px) > RENDER_DISTANCE + 1 ||
+					Math.abs(cz - pz) > RENDER_DISTANCE + 1
+				) {
+					scene.remove(mesh)
+					mesh.geometry.dispose()
+					mesh.material.dispose()
+					chunks.delete(key)
 				}
 			}
 		}
 
-		camera.position.set(0, 10, 0);
-
-		const waterGeo = new THREE.PlaneGeometry(4000, 4000);
+		camera.position.set(0, 10, 0)
+		const waterGeo = new THREE.PlaneGeometry(4000, 4000)
 		const waterMat = new THREE.MeshLambertMaterial({
 			color: 0x001a33,
 			transparent: true,
 			opacity: 0.8,
-			side: THREE.DoubleSide
-		});
-		const ocean = new THREE.Mesh(waterGeo, waterMat);
-		ocean.rotation.x = -Math.PI / 2;
-		ocean.position.y = -1;
-		scene.add(ocean);
+			side: THREE.DoubleSide,
+		})
+		const ocean = new THREE.Mesh(waterGeo, waterMat)
+		ocean.rotation.x = -Math.PI / 2
+		ocean.position.y = -1
+		scene.add(ocean)
 
-		let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false, isSprinting = false;
-		let joyX = 0, joyY = 0;
-		let lookX = 0, lookY = 0;
-		let velocity = new THREE.Vector3();
+		let moveForward = false,
+			moveBackward = false,
+			moveLeft = false,
+			moveRight = false,
+			moveUp = false,
+			moveDown = false,
+			isSprinting = false
+		let joyX = 0, joyY = 0, lookX = 0, lookY = 0
+		let velocity = new THREE.Vector3()
 
 		document.addEventListener('keydown', (e) => {
-			if(e.code === 'KeyW') moveForward = true;
-			if(e.code === 'KeyS') moveBackward = true;
-			if(e.code === 'KeyA') moveLeft = true;
-			if(e.code === 'KeyD') moveRight = true;
-			if(e.code === 'KeyE') moveUp = true;
-			if(e.code === 'KeyQ') moveDown = true;
-			if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true;
-		});
+			if (e.code === 'KeyW') moveForward = true
+			if (e.code === 'KeyS') moveBackward = true
+			if (e.code === 'KeyA') moveLeft = true
+			if (e.code === 'KeyD') moveRight = true
+			if (e.code === 'KeyE') moveUp = true
+			if (e.code === 'KeyQ') moveDown = true
+			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
+		})
 		document.addEventListener('keyup', (e) => {
-			if(e.code === 'KeyW') moveForward = false;
-			if(e.code === 'KeyS') moveBackward = false;
-			if(e.code === 'KeyA') moveLeft = false;
-			if(e.code === 'KeyD') moveRight = false;
-			if(e.code === 'KeyE') moveUp = false;
-			if(e.code === 'KeyQ') moveDown = false;
-			if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false;
-		});
+			if (e.code === 'KeyW') moveForward = false
+			if (e.code === 'KeyS') moveBackward = false
+			if (e.code === 'KeyA') moveLeft = false
+			if (e.code === 'KeyD') moveRight = false
+			if (e.code === 'KeyE') moveUp = false
+			if (e.code === 'KeyQ') moveDown = false
+			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false
+		})
 
 		function setupJoystick(containerId, knobId, callback) {
-			const container = document.getElementById(containerId);
-			const knob = document.getElementById(knobId);
-			let activeTouchId = null;
-
+			const container = document.getElementById(containerId)
+			const knob = document.getElementById(knobId)
+			let activeTouchId = null
 			const handleTouch = (e) => {
-				e.preventDefault();
-				let touch = null;
+				e.preventDefault()
+				let touch = null
 				for (let i = 0; i < e.touches.length; i++) {
 					if (e.touches[i].identifier === activeTouchId) {
-						touch = e.touches[i];
-						break;
+						touch = e.touches[i]
+						break
 					}
 				}
-				if (!touch) return;
-
-				const rect = container.getBoundingClientRect();
-				const centerX = rect.left + rect.width / 2;
-				const centerY = rect.top + rect.height / 2;
-				let dx = touch.clientX - centerX;
-				let dy = touch.clientY - centerY;
-				const distance = Math.sqrt(dx*dx + dy*dy);
-				const maxRadius = rect.width / 2;
-
+				if (!touch) return
+				const rect = container.getBoundingClientRect()
+				const centerX = rect.left + rect.width / 2
+				const centerY = rect.top + rect.height / 2
+				let dx = touch.clientX - centerX
+				let dy = touch.clientY - centerY
+				const distance = Math.sqrt(dx * dx + dy * dy)
+				const maxRadius = rect.width / 2
 				if (distance > maxRadius) {
-					dx *= maxRadius / distance;
-					dy *= maxRadius / distance;
+					dx *= maxRadius / distance
+					dy *= maxRadius / distance
 				}
-
-				knob.style.transform = `translate(${dx}px, ${dy}px)`;
-				callback(dx / maxRadius, dy / maxRadius);
-			};
-
+				knob.style.transform = `translate(${dx}px, ${dy}px)`
+				callback(dx / maxRadius, dy / maxRadius)
+			}
 			container.addEventListener('touchstart', (e) => {
-				e.preventDefault();
-				const touch = e.changedTouches[0];
-				activeTouchId = touch.identifier;
-				handleTouch(e);
-			});
-
+				e.preventDefault()
+				const touch = e.changedTouches[0]
+				activeTouchId = touch.identifier
+				handleTouch(e)
+			})
 			container.addEventListener('touchmove', (e) => {
-				if(activeTouchId !== null) handleTouch(e);
-			}, { passive: false });
-
+				if (activeTouchId !== null) handleTouch(e)
+			}, { passive: false })
 			container.addEventListener('touchend', (e) => {
 				for (let i = 0; i < e.changedTouches.length; i++) {
 					if (e.changedTouches[i].identifier === activeTouchId) {
-						activeTouchId = null;
-						knob.style.transform = `translate(0, 0)`;
-						callback(0, 0);
+						activeTouchId = null
+						knob.style.transform = `translate(0, 0)`
+						callback(0, 0)
 					}
 				}
-			});
+			})
 		}
 
 		setupJoystick('move-joy', 'move-knob', (x, y) => {
-			joyX = x;
-			joyY = y;
-		});
-
+			joyX = x
+			joyY = y
+		})
 		setupJoystick('look-joy', 'look-knob', (x, y) => {
-			lookX = x;
-			lookY = y;
-		});
+			lookX = x
+			lookY = y
+		})
 
-		document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); moveUp = true; });
-		document.getElementById('btn-up').addEventListener('touchend', () => moveUp = false);
-		document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); moveDown = true; });
-		document.getElementById('btn-down').addEventListener('touchend', () => moveDown = false);
+		document.getElementById('btn-up').addEventListener('touchstart', (e) => {
+			e.preventDefault()
+			moveUp = true
+		})
+		document.getElementById('btn-up').addEventListener(
+			'touchend',
+			() => moveUp = false,
+		)
+		document.getElementById('btn-down').addEventListener('touchstart', (e) => {
+			e.preventDefault()
+			moveDown = true
+		})
+		document.getElementById('btn-down').addEventListener(
+			'touchend',
+			() => moveDown = false,
+		)
 
 		document.getElementById('fs-btn').addEventListener('click', () => {
 			if (!document.fullscreenElement) {
-				document.documentElement.requestFullscreen().catch(e => {
-					console.error(`Error attempting to enable full-screen mode: ${e.message}`);
-				});
+				document.documentElement.requestFullscreen().catch((e) => {})
 			} else {
-				document.exitFullscreen();
+				document.exitFullscreen()
 			}
-		});
+		})
 
-		const compassEl = document.getElementById('compass');
-		const altEl = document.getElementById('altimeter');
+		const compassEl = document.getElementById('compass')
+		const altEl = document.getElementById('altimeter')
 
 		function updateHUD() {
-			altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`;
-			const degrees = (yaw * 180 / Math.PI) % 360;
-			const normalizedDeg = (360 - degrees) % 360;
-			let dir = "N";
-			if (normalizedDeg > 337.5 || normalizedDeg <= 22.5) dir = "N";
-			else if (normalizedDeg > 22.5 && normalizedDeg <= 157.5) dir = "E";
-			else if (normalizedDeg > 157.5 && normalizedDeg <= 222.5) dir = "S";
-			else if (normalizedDeg > 222.5 && normalizedDeg <= 337.5) dir = "W";
-			compassEl.textContent = dir;
+			altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`
+			const degrees = (yaw * 180 / Math.PI) % 360
+			const normalizedDeg = (360 - degrees) % 360
+			let dir = 'N'
+			if (normalizedDeg > 337.5 || normalizedDeg <= 22.5) dir = 'N'
+			else if (normalizedDeg > 22.5 && normalizedDeg <= 157.5) dir = 'E'
+			else if (normalizedDeg > 157.5 && normalizedDeg <= 222.5) dir = 'S'
+			else if (normalizedDeg > 222.5 && normalizedDeg <= 337.5) dir = 'W'
+			compassEl.textContent = dir
 		}
 
-		let prevTime = performance.now();
+		let prevTime = performance.now()
 		function animate() {
-			requestAnimationFrame(animate);
-			const time = performance.now();
-			const delta = (time - prevTime) / 1000;
-			
+			requestAnimationFrame(animate)
+			const time = performance.now()
+			const delta = (time - prevTime) / 1000
+
 			if (document.pointerLockElement !== document.body) {
 				if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
-					yaw -= lookX * 0.05;
-					pitch -= lookY * 0.05;
-					pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-					camera.rotation.set(pitch, yaw, 0, 'YXZ');
+					yaw -= lookX * 0.05
+					pitch -= lookY * 0.05
+					pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch))
+					camera.rotation.set(pitch, yaw, 0, 'YXZ')
 				}
 			}
 
-			const isUnderwater = camera.position.y < -1;
-
+			const isUnderwater = camera.position.y < -1
 			if (isUnderwater) {
-				scene.fog = new THREE.FogExp2(0x5b94b0, 0.1);
-				renderer.setClearColor(0x5b94b0);
-				sky.visible = false;
-				diveLight.visible = true;
-				diveLight.position.copy(camera.position);
-				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
-				diveLight.target.position.copy(targetPos);
-				terrainClippingPlane.constant = 1000;
-				underwaterMaterial.uniforms.uUnderwater.value = 1.0;
+				scene.fog = new THREE.FogExp2(0x5b94b0, 0.1)
+				renderer.setClearColor(0x5b94b0)
+				sky.visible = false
+				diveLight.visible = true
+				diveLight.position.copy(camera.position)
+				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(
+					camera.quaternion,
+				).add(camera.position)
+				diveLight.target.position.copy(targetPos)
+				terrainClippingPlane.constant = 1000
+				underwaterMaterial.uniforms.uUnderwater.value = 1.0
 			} else {
-				scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
-				renderer.setClearColor(0x87ceeb);
-				sky.visible = true;
-				diveLight.visible = false;
-				terrainClippingPlane.constant = -1;
-				underwaterMaterial.uniforms.uUnderwater.value = 0.0;
+				scene.fog = new THREE.FogExp2(0x87ceeb, 0.01)
+				renderer.setClearColor(0x87ceeb)
+				sky.visible = true
+				diveLight.visible = false
+				terrainClippingPlane.constant = -1
+				underwaterMaterial.uniforms.uUnderwater.value = 0.0
 			}
 
-			underwaterMaterial.uniforms.uTime.value = time * 0.001;
+			underwaterMaterial.uniforms.uTime.value = time * 0.001
 
-			velocity.x -= velocity.x * 10.0 * delta;
-			velocity.y -= velocity.y * 10.0 * delta;
-			velocity.z -= velocity.z * 10.0 * delta;
-			
-			const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-			const up = new THREE.Vector3(0, 1, 0);
-			
-			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
-			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
-			
-			const speedMultiplier = isSprinting ? 4 : 1;
-			const currentSpeed = 80 * speedMultiplier;
+			velocity.x -= velocity.x * 10.0 * delta
+			velocity.y -= velocity.y * 10.0 * delta
+			velocity.z -= velocity.z * 10.0 * delta
 
-			if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta));
-			if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta));
-			if (moveUp) velocity.add(up.clone().multiplyScalar(currentSpeed * delta));
-			if (moveDown) velocity.add(up.clone().multiplyScalar(-currentSpeed * delta));
-			
-			camera.position.add(velocity.clone().multiplyScalar(delta));
-			
-			// Keep sun and sky centered on camera
-			sky.position.copy(camera.position);
-			sun.position.copy(camera.position).add(new THREE.Vector3(100, 80, -200));
-			
-			updateChunks();
-			updateHUD();
+			const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
+			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
+			const up = new THREE.Vector3(0, 1, 0)
 
-			renderer.setRenderTarget(renderTarget);
-			renderer.render(scene, camera);
-			renderer.setRenderTarget(null);
-			
-			underwaterMaterial.uniforms.tDiffuse.value = renderTarget.texture;
-			renderer.render(postScene, postCamera);
-			
-			prevTime = time;
+			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY
+			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX
+			const speedMultiplier = isSprinting ? 4 : 1
+			const currentSpeed = 80 * speedMultiplier
+
+			if (moveZ !== 0) {
+				velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta))
+			}
+			if (moveX !== 0) {
+				velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta))
+			}
+			if (moveUp) velocity.add(up.clone().multiplyScalar(currentSpeed * delta))
+			if (moveDown) velocity.add(up.clone().multiplyScalar(-currentSpeed * delta))
+
+			const nextPos = camera.position.clone().add(
+				velocity.clone().multiplyScalar(delta),
+			)
+
+			// --- TERRAIN COLLISION ---
+			const terrainHeight = simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
+
+			if (nextPos.y < terrainHeight) {
+				nextPos.y = terrainHeight
+				velocity.set(0, 0, 0)
+			}
+
+			camera.position.copy(nextPos)
+
+			sky.position.copy(camera.position)
+			sun.position.copy(camera.position).add(new THREE.Vector3(100, 80, -200))
+
+			updateChunks()
+			updateHUD()
+
+			renderer.setRenderTarget(renderTarget)
+			renderer.render(scene, camera)
+			renderer.setRenderTarget(null)
+			underwaterMaterial.uniforms.tDiffuse.value = renderTarget.texture
+			renderer.render(postScene, postCamera)
+
+			prevTime = time
 		}
-		animate();
+		animate()
 
 		window.addEventListener('resize', () => {
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			renderTarget.setSize(window.innerWidth, window.innerHeight);
-		});
+			camera.aspect = window.innerWidth / window.innerHeight
+			camera.updateProjectionMatrix()
+			renderer.setSize(window.innerWidth, window.innerHeight)
+			renderTarget.setSize(window.innerWidth, window.innerHeight)
+		})
 
 		window.addEventListener('pointerlockchange', () => {
-			const isLocked = document.pointerLockElement === document.body;
-			const elements = ['move-joy', 'look-joy', 'height-controls'];
-			elements.forEach(id => {
-				const el = document.getElementById(id);
-				if (el) el.style.display = isLocked ? 'none' : 'block';
-			});
-		});
-	</script>
-</body>
+			const isLocked = document.pointerLockElement === document.body
+			const elements = ['move-joy', 'look-joy', 'height-controls']
+			elements.forEach((id) => {
+				const el = document.getElementById(id)
+				if (el) el.style.display = isLocked ? 'none' : 'block'
+			})
+		})
+		</script>
+	</body>
 </html>
