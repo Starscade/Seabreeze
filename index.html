@@ -135,6 +135,8 @@
 			src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 
 		<script>
+		const CYCLE_DURATION = 24000
+
 		const scene = new THREE.Scene()
 
 		const vertexShader = `
@@ -621,8 +623,7 @@
 
 			compassEl.textContent = dir
 
-			const cycleDuration = 24000
-			const progress = (time % cycleDuration) / cycleDuration
+			const progress = (time % CYCLE_DURATION) / CYCLE_DURATION
 
 			// SIN(0) = 0 = Horizon.
 			// We want the point progress = 0 to be 6:00 AM.
@@ -640,7 +641,7 @@
 
 		let prevTime = performance.now()
 		// Start at a random time of day within the 24s cycle
-		const startTimeOffset = Math.random() * 24000
+		const startTimeOffset = Math.random() * CYCLE_DURATION
 		let currentTime = prevTime + startTimeOffset
 
 		function animate() {
@@ -660,10 +661,9 @@
 			const now = performance.now()
 			const delta = (now - prevTime) / 1000
 
-			const cycleDuration = 24000
 			// Use now + offset to ensure random start but continuous flow
 			const time = now + startTimeOffset
-			const cycleProgress = (time % cycleDuration) / cycleDuration
+			const cycleProgress = (time % CYCLE_DURATION) / CYCLE_DURATION
 			const angle = cycleProgress * Math.PI * 2
 
 			const sunDist = 300
