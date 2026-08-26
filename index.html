@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GaiaCraft Minimal</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="ui">WASD: Move | Space: Jump | Left Click: Destroy | Right Click: Place</div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
+    
+    <script>
+        // Custom PointerLock implementation to avoid external module dependency
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.9);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // Simple First Person Controls
+        let yaw = 0, pitch = 0;
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body) {
+                yaw -= e.movementX * 0.002;
+                pitch -= e.movementY * 0.002;
+                pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+                camera.rotation.set(pitch, yaw, 0, 'YXZ');
+            }
+        });
+
+        document.body.addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8a31 });
+        const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+        
+        const world = [];
+        for(let x = -10; x < 10; x++) {
+            for(let z = -10; z < 10; z++) {
+                const cube = new THREE.Mesh(geometry, grassMat);
+                cube.position.set(x, 0, z);
+                scene.add(cube);
+                world.push(cube);
+                
+                const dirt = new THREE.Mesh(geometry, dirtMat);
+                dirt.position.set(x, -1, z);
+                scene.add(dirt);
+                world.push(dirt);
+            }
+        }
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
+        let velocity = new THREE.Vector3();
+        
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'KeyW') moveForward = true;
+            if(e.code === 'KeyS') moveBackward = true;
+            if(e.code === 'KeyA') moveLeft = true;
+            if(e.code === 'KeyD') moveRight = true;
+            if(e.code === 'Space' && canJump) { velocity.y += 5; canJump = false; }
+        });
+        document.addEventListener('keyup', (e) => {
+            if(e.code === 'KeyW') moveForward = false;
+            if(e.code === 'KeyS') moveBackward = false;
+            if(e.code === 'KeyA') moveLeft = false;
+            if(e.code === 'KeyD') moveRight = false;
+        });
+
+        const raycaster = new THREE.Raycaster();
+        window.addEventListener('mousedown', (e) => {
+            if (document.pointerLockElement !== document.body) return;
+            
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+            const intersects = raycaster.intersectObjects(world);
+            
+            if(intersects.length > 0) {
+                const intersect = intersects[0];
+                if(e.button === 0) {
+                    scene.remove(intersect.object);
+                    world.splice(world.indexOf(intersect.object), 1);
+                } else if(e.button === 2) {
+                    const pos = intersect.object.position.clone().add(intersect.face.normal);
+                    const cube = new THREE.Mesh(geometry, dirtMat);
+                    cube.position.copy(pos);
+                    scene.add(cube);
+                    world.push(cube);
+                }
+            }
+        });
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        camera.position.y = 2;
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+            velocity.y -= 9.8 * 1.5 * delta;
+
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            forward.y = 0; forward.normalize();
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            right.y = 0; right.normalize();
+
+            if (moveForward) velocity.add(forward.multiplyScalar(40 * delta));
+            if (moveBackward) velocity.add(forward.multiplyScalar(-40 * delta));
+            if (moveLeft) velocity.add(right.multiplyScalar(-40 * delta));
+            if (moveRight) velocity.add(right.multiplyScalar(40 * delta));
+
+            camera.position.add(velocity.clone().multiplyScalar(delta));
+
+            if (camera.position.y < 2) {
+                velocity.y = 0;
+                camera.position.y = 2;
+                canJump = true;
+            }
+
+            renderer.render(scene, camera);
+            prevTime = time;
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
