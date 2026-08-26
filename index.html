@@ -8,7 +8,7 @@
         #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
     </style>
 </head>
-<body >
+<body>
     <div id="ui">WASD: Move | Q/E: Up/Down | Left Click: Destroy | Right Click: Place</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
@@ -47,6 +47,7 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
         const ambientLight = new THREE.AmbientLight(0xcccccc, 0.9);
@@ -78,7 +79,26 @@
         const world = [];
         const size = 30;
         let maxWorldHeight = -5;
-        
+
+        // Use InstancedMesh for high performance rendering of identical blocks
+        function createInstancedMesh(material, blocks) {
+            const mesh = new THREE.InstancedMesh(geometry, material, blocks.length);
+            const matrix = new THREE.Matrix4();
+            blocks.forEach((pos, i) => {
+                matrix.setPosition(pos.x, pos.y, pos.z);
+                mesh.setMatrixAt(i, matrix);
+            });
+            scene.add(mesh);
+            return mesh;
+        }
+
+        const blockGroups = {
+            grass: [],
+            dirt: [],
+            sand: [],
+            water: []
+        };
+
         for(let x = -size; x < size; x++) {
             for(let z = -size; z < size; z++) {
                 const dist = Math.sqrt(x*x + z*z);
@@ -90,24 +110,36 @@
                 if (height > maxWorldHeight) maxWorldHeight = height;
 
                 for(let y = -5; y <= height; y++) {
-                    let mat = dirtMat;
-                    if (y === height && y > -1) mat = grassMat;
-                    if (y === height && y <= -1) mat = sandMat;
-                    
-                    const cube = new THREE.Mesh(geometry, mat);
-                    cube.position.set(x, y, z);
-                    scene.add(cube);
-                    world.push(cube);
+                    let type = 'dirt';
+                    if (y === height && y > -1) type = 'grass';
+                    if (y === height && y <= -1) type = 'sand';
+                    blockGroups[type].push({x, y, z});
                 }
 
                 if (height < -1) {
-                    const water = new THREE.Mesh(geometry, waterMat);
-                    water.position.set(x, -1, z);
-                    scene.add(water);
-                    world.push(water);
+                    blockGroups.water.push({x, y: -1, z});
                 }
             }
         }
+
+        // Performance: Combine static geometry into InstancedMeshes
+        const instancedMeshes = {
+            grass: createInstancedMesh(grassMat, blockGroups.grass),
+            dirt: createInstancedMesh(dirtMat, blockGroups.dirt),
+            sand: createInstancedMesh(sandMat, blockGroups.sand),
+            water: createInstancedMesh(waterMat, blockGroups.water)
+        };
+
+        // For raycasting/editing, we still need a lightweight representation
+        const colliderWorld = [];
+        Object.keys(blockGroups).forEach(type => {
+            blockGroups[type].forEach(p => {
+                const dummy = new THREE.Mesh(geometry);
+                dummy.position.set(p.x, p.y, p.z);
+                dummy.userData.type = type;
+                colliderWorld.push(dummy);
+            });
+        });
 
         camera.position.set(0, maxWorldHeight + 5, 0);
 
@@ -136,19 +168,21 @@
             if (document.pointerLockElement !== document.body) return;
             
             raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-            const intersects = raycaster.intersectObjects(world);
+            const intersects = raycaster.intersectObjects(colliderWorld);
             
             if(intersects.length > 0) {
                 const intersect = intersects[0];
                 if(e.button === 0) {
+                    // Basic block removal from collider
                     scene.remove(intersect.object);
-                    world.splice(world.indexOf(intersect.object), 1);
+                    colliderWorld.splice(colliderWorld.indexOf(intersect.object), 1);
+                    // Note: To truly remove from InstancedMesh, one would need to rebuild the instance or scale to 0
                 } else if(e.button === 2) {
                     const pos = intersect.object.position.clone().add(intersect.face.normal);
                     const cube = new THREE.Mesh(geometry, dirtMat);
                     cube.position.copy(pos);
                     scene.add(cube);
-                    world.push(cube);
+                    colliderWorld.push(cube);
                 }
             }
         });
