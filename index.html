@@ -691,6 +691,29 @@
 
 		let currentTime = prevTime + startTimeOffset
 
+		const rainCount = 2000
+		const rainGeo = new THREE.BufferGeometry()
+		const rainPos = new Float32Array(rainCount * 3)
+		const rainVel = new Float32Array(rainCount)
+		for (let i = 0; i < rainCount; i++) {
+			rainPos[i * 3] = (Math.random() - 0.5) * 100
+			rainPos[i * 3 + 1] = Math.random() * 100
+			rainPos[i * 3 + 2] = (Math.random() - 0.5) * 100
+			rainVel[i] = 20 + Math.random() * 20
+		}
+		rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3))
+		const rainMat = new THREE.PointsMaterial({
+			color: 0xaaaaaa,
+			size: 0.1,
+			transparent: true,
+			opacity: 0,
+		})
+		const rain = new THREE.Points(rainGeo, rainMat)
+		scene.add(rain)
+
+		let isRaining = false
+		let rainTimer = Math.random() * CYCLE_DURATION
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
@@ -741,6 +764,20 @@
 				currentHorizon.copy(nightHorizon)
 			}
 
+			rainTimer -= delta
+			if (rainTimer <= 0) {
+				isRaining = !isRaining
+				rainTimer = isRaining ? 15 + Math.random() * 30 : 30 + Math.random() * 100
+			}
+
+			if (isRaining) {
+				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.6, 0.01)
+				currentSky.lerp(new THREE.Color(0x444444), 0.3)
+				currentHorizon.lerp(new THREE.Color(0x444444), 0.3)
+			} else {
+				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
+			}
+
 			skyMat.uniforms.uSkyColor.value.copy(currentSky)
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
 
@@ -768,6 +805,7 @@
 
 				scene.fog = new THREE.FogExp2(currentUnderwaterColor, 0.1)
 				renderer.setClearColor(currentUnderwaterColor)
+				rain.visible = false
 				sky.visible = false
 				stars.visible = false
 				diveLight.visible = true
@@ -782,6 +820,7 @@
 				const fogColor = new THREE.Color().copy(currentSky)
 				scene.fog = new THREE.FogExp2(fogColor, 0.01)
 				renderer.setClearColor(fogColor)
+				rain.visible = true
 				sky.visible = true
 				stars.visible = true
 				diveLight.visible = false
@@ -827,6 +866,16 @@
 			camera.position.copy(nextPos)
 			sky.position.copy(camera.position)
 			stars.position.copy(camera.position)
+
+			const rainPositions = rainGeo.attributes.position.array
+			for (let i = 0; i < rainCount; i++) {
+				rainPositions[i * 3 + 1] -= rainVel[i] * delta
+				if (rainPositions[i * 3 + 1] < -1) {
+					rainPositions[i * 3 + 1] = 100
+				}
+			}
+			rainGeo.attributes.position.needsUpdate = true
+			rain.position.copy(camera.position)
 
 			updateChunks()
 			updateClouds()
