@@ -136,7 +136,6 @@
 
 		<script>
 		const CYCLE_DURATION = 60000
-
 		const scene = new THREE.Scene()
 
 		const vertexShader = `
@@ -169,7 +168,6 @@
 		const sky = new THREE.Mesh(skyGeo, skyMat)
 		scene.add(sky)
 
-		// STARS
 		const starGeo = new THREE.BufferGeometry()
 		const starCount = 100
 		const starPositions = new Float32Array(starCount * 3)
@@ -255,12 +253,15 @@
 		})
 
 		const cloudGroup = new THREE.Group()
-		for (let i = 0; i < 30; i++) {
-			const cloudCluster = new THREE.Group()
-			const clusterX = (Math.random() - 0.5) * 1200
-			const clusterZ = (Math.random() - 0.5) * 1200
-			const clusterY = 60 + Math.random() * 60
+		scene.add(cloudGroup)
 
+		const CLOUD_CHUNK_SIZE = 128
+		const cloudChunks = new Map()
+		let windOffset = 0
+		const WIND_SPEED = 0.277
+
+		function createCloudCluster(x, z, y) {
+			const cluster = new THREE.Group()
 			const puffCount = 5 + Math.floor(Math.random() * 10)
 			for (let j = 0; j < puffCount; j++) {
 				const size = 10 + Math.random() * 20
@@ -277,12 +278,49 @@
 					0.5 + Math.random() * 1.0,
 					0.7 + Math.random() * 1.3,
 				)
-				cloudCluster.add(puff)
+				cluster.add(puff)
 			}
-			cloudCluster.position.set(clusterX, clusterY, clusterZ)
-			cloudGroup.add(cloudCluster)
+			cluster.position.set(x, y, z)
+			return cluster
 		}
-		scene.add(cloudGroup)
+
+		function updateClouds() {
+			windOffset += WIND_SPEED * 0.016
+			const px = Math.floor((camera.position.x + windOffset) / CLOUD_CHUNK_SIZE)
+			const pz = Math.floor(camera.position.z / CLOUD_CHUNK_SIZE)
+
+			for (let x = px - 3; x <= px + 3; x++) {
+				for (let z = pz - 3; z <= pz + 3; z++) {
+					const key = `${x},${z}`
+					if (!cloudChunks.has(key)) {
+						const chunk = new THREE.Group()
+						const seed = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453
+						const cloudCount = Math.floor(Math.abs(seed) % 5)
+						for (let i = 0; i < cloudCount; i++) {
+							const cx = (Math.random() - 0.5) * CLOUD_CHUNK_SIZE
+							const cz = (Math.random() - 0.5) * CLOUD_CHUNK_SIZE
+							const cy = 60 + Math.random() * 60
+							chunk.add(createCloudCluster(cx, cz, cy))
+						}
+						chunk.position.set(x * CLOUD_CHUNK_SIZE, 0, z * CLOUD_CHUNK_SIZE)
+						cloudChunks.set(key, chunk)
+						cloudGroup.add(chunk)
+					}
+				}
+			}
+
+			for (const [key, chunk] of cloudChunks.entries()) {
+				const [cx, cz] = key.split(',').map(Number)
+				if (Math.abs(cx - px) > 4 || Math.abs(cz - pz) > 4) {
+					cloudGroup.remove(chunk)
+					chunk.traverse((c) => {
+						if (c.geometry) c.geometry.dispose()
+					})
+					cloudChunks.delete(key)
+				}
+			}
+			cloudGroup.position.x = -windOffset
+		}
 
 		const renderTarget = new THREE.WebGLRenderTarget(
 			window.innerWidth,
@@ -624,10 +662,6 @@
 			compassEl.textContent = dir
 
 			const progress = (time % CYCLE_DURATION) / CYCLE_DURATION
-
-			// SIN(0) = 0 = Horizon.
-			// We want the point progress = 0 to be 6:00 AM.
-			// Clock time = (progress * 24) + 6.
 			let hours = (progress * 24) + 6
 			if (hours >= 24) hours -= 24
 
@@ -640,28 +674,14 @@
 		}
 
 		let prevTime = performance.now()
-		// Start at a random time of day
 		const startTimeOffset = Math.random() * CYCLE_DURATION
 		let currentTime = prevTime + startTimeOffset
 
-		function animate() {
-			requestAnimationFrame(animate)
-			const now = performance.now()
-			const delta = (now - prevTime) / 1000
-			prevTime = now
-
-			// Maintain the random offset
-			const time = currentTime
-			currentTime += (now - prevTime) || 16.67 // Simplified; actually we should just track the offset.
-		}
-
-		// Revised animate to correctly handle the random start time
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
 			const delta = (now - prevTime) / 1000
 
-			// Use now + offset to ensure random start but continuous flow
 			const time = now + startTimeOffset
 			const cycleProgress = (time % CYCLE_DURATION) / CYCLE_DURATION
 			const angle = cycleProgress * Math.PI * 2
@@ -711,7 +731,6 @@
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
 
 			starMat.uniforms.uOpacity.value = Math.max(0, Math.min(1, -sunHeight))
-
 			sun.visible = sunHeight > -0.1
 
 			if (document.pointerLockElement !== document.body) {
@@ -796,6 +815,7 @@
 			stars.position.copy(camera.position)
 
 			updateChunks()
+			updateClouds()
 			updateHUD(time)
 
 			renderer.setRenderTarget(renderTarget)
