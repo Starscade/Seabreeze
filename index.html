@@ -130,10 +130,13 @@
 		const sky = new THREE.Mesh(skyGeo, skyMat);
 		scene.add(sky);
 
-		const sunGeo = new THREE.SphereGeometry(5, 32, 32);
-		const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
+		const sunGeo = new THREE.SphereGeometry(24, 16, 16);
+		const sunMat = new THREE.MeshBasicMaterial({
+			color: 0xFFFFAA,
+			depthTest: false,
+		});
 		const sun = new THREE.Mesh(sunGeo, sunMat);
-		sun.position.set(100, 80, -200);
+		sun.position.set(100, 80, -100);
 		sun.material.fog = false;
 		scene.add(sun);
 
@@ -492,10 +495,9 @@
 			const isUnderwater = camera.position.y < -1;
 
 			if (isUnderwater) {
-				scene.fog = new THREE.FogExp2(0x000b1a, 0.2);
-				renderer.setClearColor(0x000b1a);
+				scene.fog = new THREE.FogExp2(0x5b94b0, 0.1);
+				renderer.setClearColor(0x5b94b0);
 				sky.visible = false;
-				sun.visible = false;
 				diveLight.visible = true;
 				diveLight.position.copy(camera.position);
 				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
@@ -503,10 +505,9 @@
 				terrainClippingPlane.constant = 1000;
 				underwaterMaterial.uniforms.uUnderwater.value = 1.0;
 			} else {
-				scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
-				renderer.setClearColor(0x87CEEB);
+				scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
+				renderer.setClearColor(0x87ceeb);
 				sky.visible = true;
-				sun.visible = true;
 				diveLight.visible = false;
 				terrainClippingPlane.constant = -1;
 				underwaterMaterial.uniforms.uUnderwater.value = 0.0;
