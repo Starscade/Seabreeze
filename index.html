@@ -8,8 +8,8 @@
         #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
     </style>
 </head>
-<body>
-    <div id="ui">WASD: Move | Space: Jump | Left Click: Destroy | Right Click: Place</div>
+<body >
+    <div id="ui">WASD: Move | Q/E: Up/Down | Left Click: Destroy | Right Click: Place</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
     
@@ -77,16 +77,17 @@
         
         const world = [];
         const size = 30;
+        let maxWorldHeight = -5;
         
         for(let x = -size; x < size; x++) {
             for(let z = -size; z < size; z++) {
-                // Simple pseudo-random height using sine waves for island effect
                 const dist = Math.sqrt(x*x + z*z);
                 const height = Math.floor(
                     Math.sin(x * 0.2) * 2 + 
                     Math.cos(z * 0.2) * 2 + 
                     (10 - dist * 0.3) * 2
                 );
+                if (height > maxWorldHeight) maxWorldHeight = height;
 
                 for(let y = -5; y <= height; y++) {
                     let mat = dirtMat;
@@ -99,7 +100,6 @@
                     world.push(cube);
                 }
 
-                // Water level at y = -1
                 if (height < -1) {
                     const water = new THREE.Mesh(geometry, waterMat);
                     water.position.set(x, -1, z);
@@ -109,7 +109,9 @@
             }
         }
 
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
+        camera.position.set(0, maxWorldHeight + 5, 0);
+
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
         let velocity = new THREE.Vector3();
         
         document.addEventListener('keydown', (e) => {
@@ -117,13 +119,16 @@
             if(e.code === 'KeyS') moveBackward = true;
             if(e.code === 'KeyA') moveLeft = true;
             if(e.code === 'KeyD') moveRight = true;
-            if(e.code === 'Space' && canJump) { velocity.y += 5; canJump = false; }
+            if(e.code === 'KeyE') moveUp = true;
+            if(e.code === 'KeyQ') moveDown = true;
         });
         document.addEventListener('keyup', (e) => {
             if(e.code === 'KeyW') moveForward = false;
             if(e.code === 'KeyS') moveBackward = false;
             if(e.code === 'KeyA') moveLeft = false;
             if(e.code === 'KeyD') moveRight = false;
+            if(e.code === 'KeyE') moveUp = false;
+            if(e.code === 'KeyQ') moveDown = false;
         });
 
         const raycaster = new THREE.Raycaster();
@@ -149,7 +154,6 @@
         });
         window.addEventListener('contextmenu', e => e.preventDefault());
 
-        camera.position.set(0, 10, 0);
         let prevTime = performance.now();
 
         function animate() {
@@ -158,26 +162,21 @@
             const delta = (time - prevTime) / 1000;
 
             velocity.x -= velocity.x * 10.0 * delta;
+            velocity.y -= velocity.y * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
-            velocity.y -= 9.8 * 1.5 * delta;
 
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            forward.y = 0; forward.normalize();
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-            right.y = 0; right.normalize();
+            const up = new THREE.Vector3(0, 1, 0);
 
-            if (moveForward) velocity.add(forward.multiplyScalar(40 * delta));
-            if (moveBackward) velocity.add(forward.multiplyScalar(-40 * delta));
-            if (moveLeft) velocity.add(right.multiplyScalar(-40 * delta));
-            if (moveRight) velocity.add(right.multiplyScalar(40 * delta));
+            if (moveForward) velocity.add(forward.clone().multiplyScalar(40 * delta));
+            if (moveBackward) velocity.add(forward.clone().multiplyScalar(-40 * delta));
+            if (moveLeft) velocity.add(right.clone().multiplyScalar(-40 * delta));
+            if (moveRight) velocity.add(right.clone().multiplyScalar(40 * delta));
+            if (moveUp) velocity.add(up.clone().multiplyScalar(40 * delta));
+            if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
 
             camera.position.add(velocity.clone().multiplyScalar(delta));
-
-            if (camera.position.y < 2) {
-                velocity.y = 0;
-                camera.position.y = 2;
-                canJump = true;
-            }
 
             renderer.render(scene, camera);
             prevTime = time;
