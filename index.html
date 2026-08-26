@@ -674,7 +674,21 @@
 		}
 
 		let prevTime = performance.now()
-		const startTimeOffset = Math.random() * CYCLE_DURATION
+
+		let startTimeOffset = Math.random() * CYCLE_DURATION
+		const urlParams = new URLSearchParams(window.location.search)
+		const timeParam = urlParams.get('time')
+		if (timeParam && timeParam.length === 4) {
+			const h = parseInt(timeParam.substring(0, 2), 10)
+			const m = parseInt(timeParam.substring(2, 4), 10)
+			if (!isNaN(h) && !isNaN(m)) {
+				const totalMinutes = h * 60 + m
+				const dayProgress = totalMinutes / (24 * 60)
+				startTimeOffset = (dayProgress * CYCLE_DURATION) - (6 / 24 * CYCLE_DURATION)
+				if (startTimeOffset < 0) startTimeOffset += CYCLE_DURATION
+			}
+		}
+
 		let currentTime = prevTime + startTimeOffset
 
 		function animateFixed() {
