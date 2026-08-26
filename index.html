@@ -49,6 +49,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.localClippingEnabled = true;
         document.body.appendChild(renderer.domElement);
 
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
@@ -60,7 +61,6 @@
         directionalLight.position.copy(sun.position);
         scene.add(directionalLight);
 
-        // Increased intensity and used a very strong light to fight the high fog density
         const diveLight = new THREE.SpotLight(0xffffff, 150);
         diveLight.distance = 20;
         diveLight.angle = Math.PI / 6;
@@ -102,6 +102,8 @@
         const colorSand = new THREE.Color(0xedc9af);
         const colorDirt = new THREE.Color(0x8b4513);
 
+        const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1);
+
         function createChunk(cx, cz) {
             const geo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, CHUNK_RES, CHUNK_RES);
             geo.rotateX(-Math.PI / 2);
@@ -125,7 +127,12 @@
             geo.computeVertexNormals();
             geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-            const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+            const mat = new THREE.MeshLambertMaterial({ 
+                vertexColors: true, 
+                flatShading: true,
+                side: THREE.DoubleSide,
+                clippingPlanes: [terrainClippingPlane]
+            });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
             
@@ -163,7 +170,8 @@
         const waterMat = new THREE.MeshLambertMaterial({ 
             color: 0x001a33, 
             transparent: true, 
-            opacity: 0.8 
+            opacity: 0.8,
+            side: THREE.DoubleSide 
         });
         const ocean = new THREE.Mesh(waterGeo, waterMat);
         ocean.rotation.x = -Math.PI / 2;
@@ -199,20 +207,27 @@
             const isUnderwater = camera.position.y < -1;
 
             if (isUnderwater) {
-                // Slightly reduced fog density (0.2 instead of 0.3) to allow the high-intensity spotlight to be more visible
                 scene.fog = new THREE.FogExp2(0x000b1a, 0.2);
                 renderer.setClearColor(0x000b1a);
                 sky.visible = false;
+                sun.visible = false;
                 diveLight.visible = true;
                 
                 diveLight.position.copy(camera.position);
                 const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
                 diveLight.target.position.copy(targetPos);
+                
+                // Disable clipping plane when underwater so we can see the bottom
+                terrainClippingPlane.constant = 1000; 
             } else {
                 scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
                 renderer.setClearColor(0x87CEEB);
                 sky.visible = true;
+                sun.visible = true;
                 diveLight.visible = false;
+                
+                // Re-enable clipping plane at water level (y = -1)
+                terrainClippingPlane.constant = -1;
             }
 
             velocity.x -= velocity.x * 10.0 * delta;
