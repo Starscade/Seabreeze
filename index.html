@@ -42,7 +42,7 @@
         const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
         const sun = new THREE.Mesh(sunGeo, sunMat);
         sun.position.set(100, 80, -200);
-        sun.material.fog = false; // Disable fog for the sun material
+        sun.material.fog = false;
         scene.add(sun);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -92,18 +92,27 @@
             const colorSand = new THREE.Color(0xedc9af);
             const colorDirt = new THREE.Color(0x8b4513);
 
-            const islands = [
-                { x: 0, z: 0, r: 30, s: 1.2 },
-                { x: 50, z: 40, r: 15, s: 2.3 },
-                { x: -60, z: -20, r: 20, s: 3.4 },
-                { x: 30, z: -60, r: 12, s: 4.5 }
-            ];
+            const seedOffset = Math.random() * 1000;
+            const islands = [];
+            const islandCount = 3 + Math.floor(Math.random() * 4);
+            for(let i=0; i<islandCount; i++) {
+                islands.push({
+                    x: (Math.random() - 0.5) * size * 0.8,
+                    z: (Math.random() - 0.5) * size * 0.8,
+                    r: 10 + Math.random() * 25,
+                    s: Math.random() * 10
+                });
+            }
+
+            let spawnHeight = 0;
+            let spawnX = 0;
+            let spawnZ = 0;
 
             for (let i = 0; i < vertices.length; i += 3) {
                 const x = vertices[i];
                 const z = vertices[i + 2];
                 
-                let height = simplexNoise(x, z, 50) * 0.5 - 5; 
+                let height = simplexNoise(x, z, seedOffset) * 0.5 - 5; 
                 
                 islands.forEach(isl => {
                     const dx = x - isl.x;
@@ -117,6 +126,12 @@
                 });
 
                 vertices[i + 1] = height;
+
+                if (x === 0 && z === 0) {
+                    spawnHeight = height;
+                    spawnX = x;
+                    spawnZ = z;
+                }
 
                 const c = new THREE.Color();
                 if (height > 1) c.copy(colorGrass);
@@ -136,9 +151,11 @@
             
             const terrain = new THREE.Mesh(geo, mat);
             scene.add(terrain);
+            return { x: spawnX, y: spawnHeight + 2, z: spawnZ };
         }
 
-        generateTerrain();
+        const spawnPos = generateTerrain();
+        camera.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
 
         const waterGeo = new THREE.PlaneGeometry(1000, 1000);
         const waterMat = new THREE.MeshLambertMaterial({ 
@@ -150,8 +167,6 @@
         ocean.rotation.x = -Math.PI / 2;
         ocean.position.y = -1;
         scene.add(ocean);
-
-        camera.position.set(0, 10, 0);
 
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
         let velocity = new THREE.Vector3();
