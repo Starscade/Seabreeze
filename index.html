@@ -135,7 +135,7 @@
 			src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 
 		<script>
-		const CYCLE_DURATION = 24000
+		const CYCLE_DURATION = 60000
 
 		const scene = new THREE.Scene()
 
@@ -640,7 +640,7 @@
 		}
 
 		let prevTime = performance.now()
-		// Start at a random time of day within the 24s cycle
+		// Start at a random time of day
 		const startTimeOffset = Math.random() * CYCLE_DURATION
 		let currentTime = prevTime + startTimeOffset
 
