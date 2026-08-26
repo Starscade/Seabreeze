@@ -627,8 +627,13 @@
 
 			const isUnderwater = camera.position.y < -1
 			if (isUnderwater) {
-				scene.fog = new THREE.FogExp2(0x5b94b0, 0.1)
-				renderer.setClearColor(0x5b94b0)
+				// Underwater atmosphere based on day cycle
+				const underwaterDayColor = new THREE.Color(0x5b94b0)
+				const underwaterNightColor = new THREE.Color(0x020a15)
+				const currentUnderwaterColor = new THREE.Color().lerpColors(underwaterNightColor, underwaterDayColor, dayIntensity)
+				
+				scene.fog = new THREE.FogExp2(currentUnderwaterColor, 0.1)
+				renderer.setClearColor(currentUnderwaterColor)
 				sky.visible = false
 				diveLight.visible = true
 				diveLight.position.copy(camera.position)
