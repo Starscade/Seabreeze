@@ -535,6 +535,10 @@
 			
 			camera.position.add(velocity.clone().multiplyScalar(delta));
 			
+			// Keep sun and sky centered on camera
+			sky.position.copy(camera.position);
+			sun.position.copy(camera.position).add(new THREE.Vector3(100, 80, -200));
+			
 			updateChunks();
 			updateHUD();
 
