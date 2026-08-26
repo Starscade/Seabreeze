@@ -563,11 +563,17 @@
 			altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`
 			const degrees = (yaw * 180 / Math.PI) % 360
 			const normalizedDeg = (360 - degrees) % 360
+			
 			let dir = 'N'
-			if (normalizedDeg > 337.5 || normalizedDeg <= 22.5) dir = 'N'
-			else if (normalizedDeg > 22.5 && normalizedDeg <= 157.5) dir = 'E'
-			else if (normalizedDeg > 157.5 && normalizedDeg <= 222.5) dir = 'S'
-			else if (normalizedDeg > 222.5 && normalizedDeg <= 337.5) dir = 'W'
+			if (normalizedDeg >= 337.5 || normalizedDeg < 22.5) dir = 'N'
+			else if (normalizedDeg >= 22.5 && normalizedDeg < 67.5) dir = 'NE'
+			else if (normalizedDeg >= 67.5 && normalizedDeg < 112.5) dir = 'E'
+			else if (normalizedDeg >= 112.5 && normalizedDeg < 157.5) dir = 'SE'
+			else if (normalizedDeg >= 157.5 && normalizedDeg < 202.5) dir = 'S'
+			else if (normalizedDeg >= 202.5 && normalizedDeg < 247.5) dir = 'SW'
+			else if (normalizedDeg >= 247.5 && normalizedDeg < 292.5) dir = 'W'
+			else if (normalizedDeg >= 292.5 && normalizedDeg < 337.5) dir = 'NW'
+			
 			compassEl.textContent = dir
 		}
 
