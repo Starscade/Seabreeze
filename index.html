@@ -146,22 +146,21 @@
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
         renderer.setClearColor(0x87CEEB);
 
-        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
         directionalLight.position.copy(sun.position);
         scene.add(directionalLight);
 
-        const diveLight = new THREE.SpotLight(0xffffff, 150);
+        const diveLight = new THREE.SpotLight(0xffffff, 33);
         diveLight.distance = 60;
         diveLight.angle = Math.PI / 2.5;
         diveLight.penumbra = 0.2;
         diveLight.decay = 1;
-        diveLight.visible = false;
+        diveLight.visible = true;
         scene.add(diveLight);
         scene.add(diveLight.target);
 
-        // Post-processing Setup for Underwater Ripple/Tint
         const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
         const postScene = new THREE.Scene();
         const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -189,13 +188,10 @@
                 void main() {
                     vec2 uv = vUv;
                     if (uUnderwater > 0.5) {
-                        // Ripple effect
                         float ripple = sin(uv.y * 20.0 + uTime * 2.0) * 0.005;
                         ripple += cos(uv.x * 15.0 + uTime * 1.5) * 0.003;
                         uv += ripple;
-                        
                         vec4 color = texture2D(tDiffuse, uv);
-                        // Blue tint
                         vec3 tint = vec3(0.2, 0.5, 0.8);
                         color.rgb = mix(color.rgb, tint, 0.4);
                         gl_FragColor = color;
@@ -237,9 +233,9 @@
         const RENDER_DISTANCE = 3;
         const chunks = new Map();
         const seedOffset = Math.random() * 1000;
-        const colorGrass = new THREE.Color(0x4d8a31);
-        const colorSand = new THREE.Color(0xedc9af);
-        const colorDirt = new THREE.Color(0x8b4513);
+        const colorGrass = new THREE.Color(0x5db03a);
+        const colorSand = new THREE.Color(0xf0d0b0);
+        const colorDirt = new THREE.Color(0x9a5a2a);
 
         const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1);
 
@@ -493,7 +489,6 @@
             updateChunks();
             updateHUD();
 
-            // Render scene to texture, then texture to screen via shader
             renderer.setRenderTarget(renderTarget);
             renderer.render(scene, camera);
             renderer.setRenderTarget(null);
