@@ -83,7 +83,7 @@
 	</style>
 </head>
 <body id="main-body">
-	<div id="ui">WASD/Joy: Move | Q/E: Up/Down</div>
+	<div id="ui">WASD/Joy: Move | Q/E: Up/Down | Click to Lock Mouse</div>
 	
 	<div id="hud-stats">
 		<div id="compass">N</div>
@@ -216,8 +216,9 @@
 			}
 		});
 
-		document.body.addEventListener('click', (e) => {
-			if (window.innerWidth > 1024 && e.target.id !== 'fs-btn') document.body.requestPointerLock();
+		document.addEventListener('click', (e) => {
+			if (e.target.classList.contains('btn')) return;
+			document.body.requestPointerLock();
 		});
 
 		function simplexNoise(x, z, seed) {
@@ -437,11 +438,13 @@
 			const time = performance.now();
 			const delta = (time - prevTime) / 1000;
 			
-			if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
-				yaw -= lookX * 0.05;
-				pitch -= lookY * 0.05;
-				pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-				camera.rotation.set(pitch, yaw, 0, 'YXZ');
+			if (document.pointerLockElement !== document.body) {
+				if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
+					yaw -= lookX * 0.05;
+					pitch -= lookY * 0.05;
+					pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+					camera.rotation.set(pitch, yaw, 0, 'YXZ');
+				}
 			}
 
 			const isUnderwater = camera.position.y < -1;
@@ -480,7 +483,6 @@
 			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
 			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
 			
-			// Doubled speed from 40 to 80
 			if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * 80 * delta));
 			if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * 80 * delta));
 			if (moveUp) velocity.add(up.clone().multiplyScalar(80 * delta));
@@ -507,6 +509,15 @@
 			camera.updateProjectionMatrix();
 			renderer.setSize(window.innerWidth, window.innerHeight);
 			renderTarget.setSize(window.innerWidth, window.innerHeight);
+		});
+
+		window.addEventListener('pointerlockchange', () => {
+			const isLocked = document.pointerLockElement === document.body;
+			const elements = ['move-joy', 'look-joy', 'height-controls'];
+			elements.forEach(id => {
+				const el = document.getElementById(id);
+				if (el) el.style.display = isLocked ? 'none' : 'block';
+			});
 		});
 	</script>
 </body>
