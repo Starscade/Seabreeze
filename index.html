@@ -639,12 +639,30 @@
 		}
 
 		let prevTime = performance.now()
+		// Start at a random time of day within the 24s cycle
+		const startTimeOffset = Math.random() * 24000
+		let currentTime = prevTime + startTimeOffset
+
 		function animate() {
 			requestAnimationFrame(animate)
-			const time = performance.now()
-			const delta = (time - prevTime) / 1000
+			const now = performance.now()
+			const delta = (now - prevTime) / 1000
+			prevTime = now
+
+			// Maintain the random offset
+			const time = currentTime
+			currentTime += (now - prevTime) || 16.67 // Simplified; actually we should just track the offset.
+		}
+
+		// Revised animate to correctly handle the random start time
+		function animateFixed() {
+			requestAnimationFrame(animateFixed)
+			const now = performance.now()
+			const delta = (now - prevTime) / 1000
 
 			const cycleDuration = 24000
+			// Use now + offset to ensure random start but continuous flow
+			const time = now + startTimeOffset
 			const cycleProgress = (time % cycleDuration) / cycleDuration
 			const angle = cycleProgress * Math.PI * 2
 
@@ -786,9 +804,9 @@
 			underwaterMaterial.uniforms.tDiffuse.value = renderTarget.texture
 			renderer.render(postScene, postCamera)
 
-			prevTime = time
+			prevTime = now
 		}
-		animate()
+		animateFixed()
 
 		window.addEventListener('resize', () => {
 			camera.aspect = window.innerWidth / window.innerHeight
