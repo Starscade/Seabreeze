@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>GaiaCraft Minimal</title>
+    <title>GaiaCraft LowPoly</title>
     <style>
         body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; }
         canvas { display: block; }
@@ -9,7 +9,7 @@
     </style>
 </head>
 <body style="cursor: crosshair;">
-    <div id="ui">WASD: Move | Q/E: Up/Down | Left Click: Destroy | Right Click: Place</div>
+    <div id="ui">WASD: Move | Q/E: Up/Down | Fly Mode</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
     
@@ -42,11 +42,11 @@
         const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
         const sun = new THREE.Mesh(sunGeo, sunMat);
         sun.position.set(100, 80, -200);
-        sunMat.fog = false; 
+        sun.material.fog = false; // Disable fog for the sun material
         scene.add(sun);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
@@ -54,7 +54,7 @@
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
         renderer.setClearColor(0x87CEEB);
 
-        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.9);
+        const ambientLight = new THREE.AmbientLight(0xcccccc, 0.8);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
         directionalLight.position.copy(sun.position);
@@ -74,84 +74,82 @@
             document.body.requestPointerLock();
         });
 
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8a31 });
-        const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-        const sandMat = new THREE.MeshLambertMaterial({ color: 0xedc9af });
-        
-        // Navy blue water, slightly transparent but opaque enough to block the sky
-        const waterMat = new THREE.MeshLambertMaterial({ 
-            color: 0x001a33, 
-            transparent: true, 
-            opacity: 0.95 
-        });
-        
-        const blockGroups = { grass: [], dirt: [], sand: [] };
-        const colliderWorld = [];
-
         function simplexNoise(x, z, seed) {
             return Math.sin(x * 0.1 + seed) * Math.cos(z * 0.1 + seed) * 2 +
                    Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 4 +
                    Math.sin(x * 0.02 + seed) * Math.sin(z * 0.02 + seed) * 6;
         }
 
-        function generateIsland(centerX, centerZ, radius, seedOffset) {
-            for(let x = -radius; x < radius; x++) {
-                for(let z = -radius; z < radius; z++) {
-                    const dist = Math.sqrt(x*x + z*z);
-                    if(dist > radius) continue;
-                    
-                    const noiseVal = simplexNoise(x + centerX, z + centerZ, seedOffset);
-                    const mask = Math.max(0, (radius - dist) / radius);
-                    const height = Math.floor(noiseVal * mask * 2 + (mask * 2));
+        function generateTerrain() {
+            const size = 200;
+            const segments = 60; 
+            const geo = new THREE.PlaneGeometry(size, size, segments, segments);
+            geo.rotateX(-Math.PI / 2);
 
-                    for(let y = -10; y <= height; y++) {
-                        let type = 'dirt';
-                        if (y === height && y > -1) type = 'grass';
-                        else if (y === height || (y > -2 && y < height && height < 1)) type = 'sand';
-                        
-                        const pos = {x: x + centerX, y, z: z + centerZ};
-                        blockGroups[type].push(pos);
+            const vertices = geo.attributes.position.array;
+            const colors = [];
+            const colorGrass = new THREE.Color(0x4d8a31);
+            const colorSand = new THREE.Color(0xedc9af);
+            const colorDirt = new THREE.Color(0x8b4513);
+
+            const islands = [
+                { x: 0, z: 0, r: 30, s: 1.2 },
+                { x: 50, z: 40, r: 15, s: 2.3 },
+                { x: -60, z: -20, r: 20, s: 3.4 },
+                { x: 30, z: -60, r: 12, s: 4.5 }
+            ];
+
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 2];
+                
+                let height = simplexNoise(x, z, 50) * 0.5 - 5; 
+                
+                islands.forEach(isl => {
+                    const dx = x - isl.x;
+                    const dz = z - isl.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    if (dist < isl.r) {
+                        const mask = (isl.r - dist) / isl.r;
+                        const noiseVal = simplexNoise(x, z, isl.s);
+                        height += (noiseVal * mask * 3 + mask * 5);
                     }
-                }
+                });
+
+                vertices[i + 1] = height;
+
+                const c = new THREE.Color();
+                if (height > 1) c.copy(colorGrass);
+                else if (height > -1) c.copy(colorSand);
+                else c.copy(colorDirt);
+                
+                colors.push(c.r, c.g, c.b);
             }
+
+            geo.computeVertexNormals();
+            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const mat = new THREE.MeshLambertMaterial({ 
+                vertexColors: true, 
+                flatShading: true 
+            });
+            
+            const terrain = new THREE.Mesh(geo, mat);
+            scene.add(terrain);
         }
 
-        generateIsland(0, 0, 25, Math.random() * 100);
-        generateIsland(50, 40, 10, Math.random() * 100);
-        generateIsland(-60, -20, 12, Math.random() * 100);
-        generateIsland(30, -60, 8, Math.random() * 100);
+        generateTerrain();
 
-        function createInstancedMesh(material, blocks) {
-            if (blocks.length === 0) return null;
-            const mesh = new THREE.InstancedMesh(geometry, material, blocks.length);
-            const matrix = new THREE.Matrix4();
-            blocks.forEach((pos, i) => {
-                matrix.setPosition(pos.x, pos.y, pos.z);
-                mesh.setMatrixAt(i, matrix);
-            });
-            scene.add(mesh);
-            return mesh;
-        }
-
-        createInstancedMesh(grassMat, blockGroups.grass);
-        createInstancedMesh(dirtMat, blockGroups.dirt);
-        createInstancedMesh(sandMat, blockGroups.sand);
-
-        Object.keys(blockGroups).forEach(type => {
-            blockGroups[type].forEach(p => {
-                const dummy = new THREE.Mesh(geometry);
-                dummy.position.set(p.x, p.y, p.z);
-                dummy.userData.type = type;
-                colliderWorld.push(dummy);
-            });
+        const waterGeo = new THREE.PlaneGeometry(1000, 1000);
+        const waterMat = new THREE.MeshLambertMaterial({ 
+            color: 0x001a33, 
+            transparent: true, 
+            opacity: 0.8 
         });
-
-        const oceanGeo = new THREE.PlaneGeometry(2000, 2000);
-        const oceanPlane = new THREE.Mesh(oceanGeo, waterMat);
-        oceanPlane.rotation.x = -Math.PI / 2;
-        oceanPlane.position.y = -1;
-        scene.add(oceanPlane);
+        const ocean = new THREE.Mesh(waterGeo, waterMat);
+        ocean.rotation.x = -Math.PI / 2;
+        ocean.position.y = -1;
+        scene.add(ocean);
 
         camera.position.set(0, 10, 0);
 
@@ -175,27 +173,6 @@
             if(e.code === 'KeyQ') moveDown = false;
         });
 
-        const raycaster = new THREE.Raycaster();
-        window.addEventListener('mousedown', (e) => {
-            if (document.pointerLockElement !== document.body) return;
-            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-            const intersects = raycaster.intersectObjects(colliderWorld);
-            if(intersects.length > 0) {
-                const intersect = intersects[0];
-                if(e.button === 0) {
-                    scene.remove(intersect.object);
-                    colliderWorld.splice(colliderWorld.indexOf(intersect.object), 1);
-                } else if(e.button === 2) {
-                    const pos = intersect.object.position.clone().add(intersect.face.normal);
-                    const cube = new THREE.Mesh(geometry, dirtMat);
-                    cube.position.copy(pos);
-                    scene.add(cube);
-                    colliderWorld.push(cube);
-                }
-            }
-        });
-        window.addEventListener('contextmenu', e => e.preventDefault());
-
         let prevTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
@@ -203,9 +180,9 @@
             const delta = (time - prevTime) / 1000;
             
             if (camera.position.y < -1) {
-                scene.fog = new THREE.FogExp2(0x000b1a, 0.3); // Very dense dark navy fog underwater
+                scene.fog = new THREE.FogExp2(0x000b1a, 0.3);
                 renderer.setClearColor(0x000b1a);
-                sky.visible = false; // Hide skybox when underwater
+                sky.visible = false;
             } else {
                 scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
                 renderer.setClearColor(0x87CEEB);
@@ -215,15 +192,18 @@
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
+            
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
             const up = new THREE.Vector3(0, 1, 0);
+            
             if (moveForward) velocity.add(forward.clone().multiplyScalar(40 * delta));
             if (moveBackward) velocity.add(forward.clone().multiplyScalar(-40 * delta));
             if (moveLeft) velocity.add(right.clone().multiplyScalar(-40 * delta));
             if (moveRight) velocity.add(right.clone().multiplyScalar(40 * delta));
             if (moveUp) velocity.add(up.clone().multiplyScalar(40 * delta));
             if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
+            
             camera.position.add(velocity.clone().multiplyScalar(delta));
             renderer.render(scene, camera);
             prevTime = time;
