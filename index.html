@@ -48,12 +48,23 @@
             align-items: center;
             justify-content: center;
             user-select: none;
+            cursor: pointer;
+        }
+        #fs-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
         }
     </style>
 </head>
-<body>
+<body id="main-body">
     <div id="ui">WASD/Joy: Move | Q/E: Up/Down</div>
     
+    <div id="fs-btn" class="btn">FULL</div>
+
     <div id="move-joy" class="joystick-container">
         <div class="knob" id="move-knob"></div>
     </div>
@@ -126,7 +137,6 @@
 
         let yaw = 0, pitch = 0;
         
-        // Desktop Mouse Look
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body) {
                 yaw -= e.movementX * 0.002;
@@ -137,7 +147,7 @@
         });
 
         document.body.addEventListener('click', (e) => {
-            if (window.innerWidth > 1024) document.body.requestPointerLock();
+            if (window.innerWidth > 1024 && e.target.id !== 'fs-btn') document.body.requestPointerLock();
         });
 
         function simplexNoise(x, z, seed) {
@@ -234,13 +244,11 @@
         ocean.position.y = -1;
         scene.add(ocean);
 
-        // Input State
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
-        let joyX = 0, joyY = 0; // -1 to 1
-        let lookX = 0, lookY = 0; // -1 to 1
+        let joyX = 0, joyY = 0; 
+        let lookX = 0, lookY = 0; 
         let velocity = new THREE.Vector3();
 
-        // Keyboard
         document.addEventListener('keydown', (e) => {
             if(e.code === 'KeyW') moveForward = true;
             if(e.code === 'KeyS') moveBackward = true;
@@ -258,7 +266,6 @@
             if(e.code === 'KeyQ') moveDown = false;
         });
 
-        // Joystick Logic
         function setupJoystick(containerId, knobId, callback) {
             const container = document.getElementById(containerId);
             const knob = document.getElementById(knobId);
@@ -309,13 +316,22 @@
         document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); moveDown = true; });
         document.getElementById('btn-down').addEventListener('touchend', () => moveDown = false);
 
+        document.getElementById('fs-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(e => {
+                    console.error(`Error attempting to enable full-screen mode: ${e.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
         let prevTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
             
-            // Mobile Camera Look
             if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
                 yaw -= lookX * 0.05;
                 pitch -= lookY * 0.05;
@@ -352,7 +368,6 @@
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
             const up = new THREE.Vector3(0, 1, 0);
             
-            // Merge Keyboard and Joystick
             const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
             const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
             
