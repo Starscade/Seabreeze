@@ -60,6 +60,16 @@
         directionalLight.position.copy(sun.position);
         scene.add(directionalLight);
 
+        // Increased intensity and used a very strong light to fight the high fog density
+        const diveLight = new THREE.SpotLight(0xffffff, 150);
+        diveLight.distance = 20;
+        diveLight.angle = Math.PI / 6;
+        diveLight.penumbra = 0.3;
+        diveLight.decay = 1;
+        diveLight.visible = false;
+        scene.add(diveLight);
+        scene.add(diveLight.target);
+
         let yaw = 0, pitch = 0;
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body) {
@@ -75,7 +85,6 @@
         });
 
         function simplexNoise(x, z, seed) {
-            // Drastically varied heightmap using multiple octaves of different scales and high multipliers
             return (
                 Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 10 +
                 Math.sin(x * 0.2 + seed * 1.1) * Math.cos(z * 0.2 + seed * 1.2) * 5 +
@@ -103,9 +112,6 @@
             for (let i = 0; i < vertices.length; i += 3) {
                 const worldX = vertices[i] + cx * CHUNK_SIZE;
                 const worldZ = vertices[i + 2] + cz * CHUNK_SIZE;
-                
-                // Shift height down so only the top 20% of the variance peaks above sea level (-1)
-                // Height range is roughly -40 to +40. Shifting by -15 keeps mostly underwater.
                 let height = simplexNoise(worldX, worldZ, seedOffset) - 15; 
                 vertices[i + 1] = height;
 
@@ -193,13 +199,20 @@
             const isUnderwater = camera.position.y < -1;
 
             if (isUnderwater) {
-                scene.fog = new THREE.FogExp2(0x000b1a, 0.3);
+                // Slightly reduced fog density (0.2 instead of 0.3) to allow the high-intensity spotlight to be more visible
+                scene.fog = new THREE.FogExp2(0x000b1a, 0.2);
                 renderer.setClearColor(0x000b1a);
                 sky.visible = false;
+                diveLight.visible = true;
+                
+                diveLight.position.copy(camera.position);
+                const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
+                diveLight.target.position.copy(targetPos);
             } else {
                 scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
                 renderer.setClearColor(0x87CEEB);
                 sky.visible = true;
+                diveLight.visible = false;
             }
 
             velocity.x -= velocity.x * 10.0 * delta;
