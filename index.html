@@ -8,7 +8,7 @@
         #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
     </style>
 </head>
-<body>
+<body >
     <div id="ui">WASD: Move | Q/E: Up/Down | Left Click: Destroy | Right Click: Place</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
@@ -76,12 +76,40 @@
         const sandMat = new THREE.MeshLambertMaterial({ color: 0xedc9af });
         const waterMat = new THREE.MeshLambertMaterial({ color: 0x0077be, transparent: true, opacity: 0.7 });
         
-        const world = [];
-        const size = 30;
-        let maxWorldHeight = -5;
+        const blockGroups = { grass: [], dirt: [], sand: [], water: [] };
+        const size = 40;
+        const seed = Math.random() * 100;
+        
+        // Simple Pseudo-Random Noise Function
+        function noise(x, z) {
+            return Math.sin(x * 0.1 + seed) * Math.cos(z * 0.1 + seed) + 
+                   Math.sin(x * 0.05 - seed) * Math.cos(z * 0.05 + seed) * 2;
+        }
 
-        // Use InstancedMesh for high performance rendering of identical blocks
+        for(let x = -size; x < size; x++) {
+            for(let z = -size; z < size; z++) {
+                const dist = Math.sqrt(x*x + z*z);
+                const n = noise(x, z);
+                const height = Math.floor(n * 3 + (15 - dist * 0.3));
+
+                for(let y = -5; y <= height; y++) {
+                    let type = 'dirt';
+                    if (y === height && y > -1) type = 'grass';
+                    if (y === height && y <= -1) type = 'sand';
+                    if (type) blockGroups[type]?.push({x, y, z});
+                }
+            }
+        }
+
+        // Infinite Ocean Floor (Plane)
+        const oceanGeo = new THREE.PlaneGeometry(2000, 2000);
+        const oceanPlane = new THREE.Mesh(oceanGeo, waterMat);
+        oceanPlane.rotation.x = -Math.PI / 2;
+        oceanPlane.position.y = -1;
+        scene.add(oceanPlane);
+
         function createInstancedMesh(material, blocks) {
+            if (blocks.length === 0) return null;
             const mesh = new THREE.InstancedMesh(geometry, material, blocks.length);
             const matrix = new THREE.Matrix4();
             blocks.forEach((pos, i) => {
@@ -92,45 +120,12 @@
             return mesh;
         }
 
-        const blockGroups = {
-            grass: [],
-            dirt: [],
-            sand: [],
-            water: []
-        };
-
-        for(let x = -size; x < size; x++) {
-            for(let z = -size; z < size; z++) {
-                const dist = Math.sqrt(x*x + z*z);
-                const height = Math.floor(
-                    Math.sin(x * 0.2) * 2 + 
-                    Math.cos(z * 0.2) * 2 + 
-                    (10 - dist * 0.3) * 2
-                );
-                if (height > maxWorldHeight) maxWorldHeight = height;
-
-                for(let y = -5; y <= height; y++) {
-                    let type = 'dirt';
-                    if (y === height && y > -1) type = 'grass';
-                    if (y === height && y <= -1) type = 'sand';
-                    blockGroups[type].push({x, y, z});
-                }
-
-                if (height < -1) {
-                    blockGroups.water.push({x, y: -1, z});
-                }
-            }
-        }
-
-        // Performance: Combine static geometry into InstancedMeshes
         const instancedMeshes = {
             grass: createInstancedMesh(grassMat, blockGroups.grass),
             dirt: createInstancedMesh(dirtMat, blockGroups.dirt),
-            sand: createInstancedMesh(sandMat, blockGroups.sand),
-            water: createInstancedMesh(waterMat, blockGroups.water)
+            sand: createInstancedMesh(sandMat, blockGroups.sand)
         };
 
-        // For raycasting/editing, we still need a lightweight representation
         const colliderWorld = [];
         Object.keys(blockGroups).forEach(type => {
             blockGroups[type].forEach(p => {
@@ -141,7 +136,7 @@
             });
         });
 
-        camera.position.set(0, maxWorldHeight + 5, 0);
+        camera.position.set(0, 10, 0);
 
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
         let velocity = new THREE.Vector3();
@@ -166,17 +161,13 @@
         const raycaster = new THREE.Raycaster();
         window.addEventListener('mousedown', (e) => {
             if (document.pointerLockElement !== document.body) return;
-            
             raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
             const intersects = raycaster.intersectObjects(colliderWorld);
-            
             if(intersects.length > 0) {
                 const intersect = intersects[0];
                 if(e.button === 0) {
-                    // Basic block removal from collider
                     scene.remove(intersect.object);
                     colliderWorld.splice(colliderWorld.indexOf(intersect.object), 1);
-                    // Note: To truly remove from InstancedMesh, one would need to rebuild the instance or scale to 0
                 } else if(e.button === 2) {
                     const pos = intersect.object.position.clone().add(intersect.face.normal);
                     const cube = new THREE.Mesh(geometry, dirtMat);
@@ -189,29 +180,23 @@
         window.addEventListener('contextmenu', e => e.preventDefault());
 
         let prevTime = performance.now();
-
         function animate() {
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
-
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
-
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
             const up = new THREE.Vector3(0, 1, 0);
-
             if (moveForward) velocity.add(forward.clone().multiplyScalar(40 * delta));
             if (moveBackward) velocity.add(forward.clone().multiplyScalar(-40 * delta));
             if (moveLeft) velocity.add(right.clone().multiplyScalar(-40 * delta));
             if (moveRight) velocity.add(right.clone().multiplyScalar(40 * delta));
             if (moveUp) velocity.add(up.clone().multiplyScalar(40 * delta));
             if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
-
             camera.position.add(velocity.clone().multiplyScalar(delta));
-
             renderer.render(scene, camera);
             prevTime = time;
         }
