@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>GaiaCraft Minimal</title>
     <style>
@@ -16,7 +16,6 @@
     <script>
         const scene = new THREE.Scene();
         
-        // Day-time Gradient Sky
         const vertexShader = `
             varying vec3 vWorldPosition;
             void main() {
@@ -35,15 +34,10 @@
             }
         `;
         const skyGeo = new THREE.SphereGeometry(500, 32, 15);
-        const skyMat = new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader,
-            side: THREE.BackSide
-        });
+        const skyMat = new THREE.ShaderMaterial({ vertexShader, fragmentShader, side: THREE.BackSide });
         const sky = new THREE.Mesh(skyGeo, skyMat);
         scene.add(sky);
 
-        // Sun
         const sunGeo = new THREE.SphereGeometry(5, 32, 32);
         const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
         const sun = new THREE.Mesh(sunGeo, sunMat);
@@ -78,19 +72,40 @@
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const grassMat = new THREE.MeshLambertMaterial({ color: 0x4d8a31 });
         const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+        const sandMat = new THREE.MeshLambertMaterial({ color: 0xedc9af });
+        const waterMat = new THREE.MeshLambertMaterial({ color: 0x0077be, transparent: true, opacity: 0.7 });
         
         const world = [];
-        for(let x = -10; x < 10; x++) {
-            for(let z = -10; z < 10; z++) {
-                const cube = new THREE.Mesh(geometry, grassMat);
-                cube.position.set(x, 0, z);
-                scene.add(cube);
-                world.push(cube);
-                
-                const dirt = new THREE.Mesh(geometry, dirtMat);
-                dirt.position.set(x, -1, z);
-                scene.add(dirt);
-                world.push(dirt);
+        const size = 30;
+        
+        for(let x = -size; x < size; x++) {
+            for(let z = -size; z < size; z++) {
+                // Simple pseudo-random height using sine waves for island effect
+                const dist = Math.sqrt(x*x + z*z);
+                const height = Math.floor(
+                    Math.sin(x * 0.2) * 2 + 
+                    Math.cos(z * 0.2) * 2 + 
+                    (10 - dist * 0.3) * 2
+                );
+
+                for(let y = -5; y <= height; y++) {
+                    let mat = dirtMat;
+                    if (y === height && y > -1) mat = grassMat;
+                    if (y === height && y <= -1) mat = sandMat;
+                    
+                    const cube = new THREE.Mesh(geometry, mat);
+                    cube.position.set(x, y, z);
+                    scene.add(cube);
+                    world.push(cube);
+                }
+
+                // Water level at y = -1
+                if (height < -1) {
+                    const water = new THREE.Mesh(geometry, waterMat);
+                    water.position.set(x, -1, z);
+                    scene.add(water);
+                    world.push(water);
+                }
             }
         }
 
@@ -134,7 +149,7 @@
         });
         window.addEventListener('contextmenu', e => e.preventDefault());
 
-        camera.position.y = 2;
+        camera.position.set(0, 10, 0);
         let prevTime = performance.now();
 
         function animate() {
