@@ -80,84 +80,75 @@
                    Math.sin(x * 0.02 + seed) * Math.sin(z * 0.02 + seed) * 6;
         }
 
-        function generateTerrain() {
-            const size = 200;
-            const segments = 60; 
-            const geo = new THREE.PlaneGeometry(size, size, segments, segments);
+        const CHUNK_SIZE = 64;
+        const CHUNK_RES = 32;
+        const RENDER_DISTANCE = 3;
+        const chunks = new Map();
+        const seedOffset = Math.random() * 1000;
+        const colorGrass = new THREE.Color(0x4d8a31);
+        const colorSand = new THREE.Color(0xedc9af);
+        const colorDirt = new THREE.Color(0x8b4513);
+
+        function createChunk(cx, cz) {
+            const geo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, CHUNK_RES, CHUNK_RES);
             geo.rotateX(-Math.PI / 2);
 
             const vertices = geo.attributes.position.array;
             const colors = [];
-            const colorGrass = new THREE.Color(0x4d8a31);
-            const colorSand = new THREE.Color(0xedc9af);
-            const colorDirt = new THREE.Color(0x8b4513);
-
-            const seedOffset = Math.random() * 1000;
-            const islands = [];
-            const islandCount = 3 + Math.floor(Math.random() * 4);
-            for(let i=0; i<islandCount; i++) {
-                islands.push({
-                    x: (Math.random() - 0.5) * size * 0.8,
-                    z: (Math.random() - 0.5) * size * 0.8,
-                    r: 10 + Math.random() * 25,
-                    s: Math.random() * 10
-                });
-            }
-
-            let spawnHeight = 0;
-            let spawnX = 0;
-            let spawnZ = 0;
-
+            
             for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i];
-                const z = vertices[i + 2];
+                const worldX = vertices[i] + cx * CHUNK_SIZE;
+                const worldZ = vertices[i + 2] + cz * CHUNK_SIZE;
                 
-                let height = simplexNoise(x, z, seedOffset) * 0.5 - 5; 
-                
-                islands.forEach(isl => {
-                    const dx = x - isl.x;
-                    const dz = z - isl.z;
-                    const dist = Math.sqrt(dx*dx + dz*dz);
-                    if (dist < isl.r) {
-                        const mask = (isl.r - dist) / isl.r;
-                        const noiseVal = simplexNoise(x, z, isl.s);
-                        height += (noiseVal * mask * 3 + mask * 5);
-                    }
-                });
-
+                // Adjusted height: offset by +2 to ensure more terrain is above sea level (-1)
+                let height = simplexNoise(worldX, worldZ, seedOffset) * 0.5 + 2; 
                 vertices[i + 1] = height;
 
-                if (x === 0 && z === 0) {
-                    spawnHeight = height;
-                    spawnX = x;
-                    spawnZ = z;
-                }
-
                 const c = new THREE.Color();
-                if (height > 1) c.copy(colorGrass);
-                else if (height > -1) c.copy(colorSand);
+                if (height > 2) c.copy(colorGrass);
+                else if (height > 0) c.copy(colorSand);
                 else c.copy(colorDirt);
-                
                 colors.push(c.r, c.g, c.b);
             }
 
             geo.computeVertexNormals();
             geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-            const mat = new THREE.MeshLambertMaterial({ 
-                vertexColors: true, 
-                flatShading: true 
-            });
+            const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
             
-            const terrain = new THREE.Mesh(geo, mat);
-            scene.add(terrain);
-            return { x: spawnX, y: spawnHeight + 2, z: spawnZ };
+            scene.add(mesh);
+            return mesh;
         }
 
-        const spawnPos = generateTerrain();
-        camera.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+        function updateChunks() {
+            const px = Math.floor(camera.position.x / CHUNK_SIZE);
+            const pz = Math.floor(camera.position.z / CHUNK_SIZE);
 
-        const waterGeo = new THREE.PlaneGeometry(1000, 1000);
+            for (let x = px - RENDER_DISTANCE; x <= px + RENDER_DISTANCE; x++) {
+                for (let z = pz - RENDER_DISTANCE; z <= pz + RENDER_DISTANCE; z++) {
+                    const key = `${x},${z}`;
+                    if (!chunks.has(key)) {
+                        chunks.set(key, createChunk(x, z));
+                    }
+                }
+            }
+
+            for (const [key, mesh] of chunks.entries()) {
+                const [cx, cz] = key.split(',').map(Number);
+                if (Math.abs(cx - px) > RENDER_DISTANCE + 1 || Math.abs(cz - pz) > RENDER_DISTANCE + 1) {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                    chunks.delete(key);
+                }
+            }
+        }
+
+        camera.position.set(0, 10, 0);
+
+        const waterGeo = new THREE.PlaneGeometry(2000, 2000);
         const waterMat = new THREE.MeshLambertMaterial({ 
             color: 0x001a33, 
             transparent: true, 
@@ -194,7 +185,9 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
             
-            if (camera.position.y < -1) {
+            const isUnderwater = camera.position.y < -1;
+
+            if (isUnderwater) {
                 scene.fog = new THREE.FogExp2(0x000b1a, 0.3);
                 renderer.setClearColor(0x000b1a);
                 sky.visible = false;
@@ -203,6 +196,13 @@
                 renderer.setClearColor(0x87CEEB);
                 sky.visible = true;
             }
+
+            // Only hide chunks if we are above water AND the prompt requires "nothing beneath the water".
+            // However, to allow islands, we only hide the chunks when underwater (to simulate visibility) 
+            // OR we keep them visible to see islands. Since user wants islands to walk on, we keep them visible.
+            chunks.forEach(mesh => {
+                mesh.visible = true; 
+            });
 
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
@@ -220,6 +220,8 @@
             if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
             
             camera.position.add(velocity.clone().multiplyScalar(delta));
+            
+            updateChunks();
             renderer.render(scene, camera);
             prevTime = time;
         }
