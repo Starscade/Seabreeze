@@ -161,6 +161,53 @@
         scene.add(diveLight);
         scene.add(diveLight.target);
 
+        // Post-processing Setup for Underwater Ripple/Tint
+        const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+        const postScene = new THREE.Scene();
+        const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const postQuad = new THREE.PlaneGeometry(2, 2);
+        
+        const underwaterMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                tDiffuse: { value: null },
+                uTime: { value: 0 },
+                uUnderwater: { value: 0 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform float uTime;
+                uniform float uUnderwater;
+                varying vec2 vUv;
+
+                void main() {
+                    vec2 uv = vUv;
+                    if (uUnderwater > 0.5) {
+                        // Ripple effect
+                        float ripple = sin(uv.y * 20.0 + uTime * 2.0) * 0.005;
+                        ripple += cos(uv.x * 15.0 + uTime * 1.5) * 0.003;
+                        uv += ripple;
+                        
+                        vec4 color = texture2D(tDiffuse, uv);
+                        // Blue tint
+                        vec3 tint = vec3(0.2, 0.5, 0.8);
+                        color.rgb = mix(color.rgb, tint, 0.4);
+                        gl_FragColor = color;
+                    } else {
+                        gl_FragColor = texture2D(tDiffuse, uv);
+                    }
+                }
+            `
+        });
+        const postMesh = new THREE.Mesh(postQuad, underwaterMaterial);
+        postScene.add(postMesh);
+
         let yaw = 0, pitch = 0;
         
         document.addEventListener('mousemove', (e) => {
@@ -376,10 +423,7 @@
         const altEl = document.getElementById('altimeter');
 
         function updateHUD() {
-            // Altimeter
             altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`;
-            
-            // Compass
             const degrees = (yaw * 180 / Math.PI) % 360;
             const normalizedDeg = (360 - degrees) % 360;
             let dir = "N";
@@ -415,6 +459,7 @@
                 const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
                 diveLight.target.position.copy(targetPos);
                 terrainClippingPlane.constant = 1000; 
+                underwaterMaterial.uniforms.uUnderwater.value = 1.0;
             } else {
                 scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
                 renderer.setClearColor(0x87CEEB);
@@ -422,7 +467,10 @@
                 sun.visible = true;
                 diveLight.visible = false;
                 terrainClippingPlane.constant = -1;
+                underwaterMaterial.uniforms.uUnderwater.value = 0.0;
             }
+
+            underwaterMaterial.uniforms.uTime.value = time * 0.001;
 
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
@@ -444,7 +492,15 @@
             
             updateChunks();
             updateHUD();
+
+            // Render scene to texture, then texture to screen via shader
+            renderer.setRenderTarget(renderTarget);
             renderer.render(scene, camera);
+            renderer.setRenderTarget(null);
+            
+            underwaterMaterial.uniforms.tDiffuse.value = renderTarget.texture;
+            renderer.render(postScene, postCamera);
+            
             prevTime = time;
         }
         animate();
@@ -453,6 +509,7 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderTarget.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
