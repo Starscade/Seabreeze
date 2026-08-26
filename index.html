@@ -83,7 +83,7 @@
 	</style>
 </head>
 <body id="main-body">
-	<div id="ui">WASD/Joy: Move | Q/E: Up/Down | Click to Lock Mouse</div>
+	<div id="ui">WASD/Joy: Move | Q/E: Up/Down | Shift: Sprint | Click to Lock Mouse</div>
 	
 	<div id="hud-stats">
 		<div id="compass">N</div>
@@ -315,7 +315,7 @@
 		ocean.position.y = -1;
 		scene.add(ocean);
 
-		let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+		let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false, isSprinting = false;
 		let joyX = 0, joyY = 0;
 		let lookX = 0, lookY = 0;
 		let velocity = new THREE.Vector3();
@@ -327,6 +327,7 @@
 			if(e.code === 'KeyD') moveRight = true;
 			if(e.code === 'KeyE') moveUp = true;
 			if(e.code === 'KeyQ') moveDown = true;
+			if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true;
 		});
 		document.addEventListener('keyup', (e) => {
 			if(e.code === 'KeyW') moveForward = false;
@@ -335,6 +336,7 @@
 			if(e.code === 'KeyD') moveRight = false;
 			if(e.code === 'KeyE') moveUp = false;
 			if(e.code === 'KeyQ') moveDown = false;
+			if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false;
 		});
 
 		function setupJoystick(containerId, knobId, callback) {
@@ -483,10 +485,13 @@
 			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
 			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
 			
-			if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * 80 * delta));
-			if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * 80 * delta));
-			if (moveUp) velocity.add(up.clone().multiplyScalar(80 * delta));
-			if (moveDown) velocity.add(up.clone().multiplyScalar(-80 * delta));
+			const speedMultiplier = isSprinting ? 4 : 1;
+			const currentSpeed = 80 * speedMultiplier;
+
+			if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta));
+			if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta));
+			if (moveUp) velocity.add(up.clone().multiplyScalar(currentSpeed * delta));
+			if (moveDown) velocity.add(up.clone().multiplyScalar(-currentSpeed * delta));
 			
 			camera.position.add(velocity.clone().multiplyScalar(delta));
 			
