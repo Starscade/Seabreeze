@@ -3,14 +3,68 @@
 <head>
     <title>GaiaCraft LowPoly</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; touch-action: none; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 1px 1px 2px black; pointer-events: none; font-size: 14px; }
+        .joystick-container { 
+            position: absolute; 
+            bottom: 40px; 
+            width: 120px; 
+            height: 120px; 
+            background: rgba(255,255,255,0.2); 
+            border-radius: 50%; 
+            touch-action: none;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        #move-joy { left: 40px; }
+        #look-joy { right: 40px; }
+        .knob { 
+            position: absolute; 
+            top: 35px; 
+            left: 35px; 
+            width: 50px; 
+            height: 50px; 
+            background: rgba(255,255,255,0.5); 
+            border-radius: 50%; 
+            pointer-events: none; 
+        }
+        #height-controls {
+            position: absolute;
+            right: 40px;
+            bottom: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.3);
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
     </style>
 </head>
-<body style="cursor: crosshair;">
-    <div id="ui">WASD: Move | Q/E: Up/Down | Fly Mode</div>
+<body>
+    <div id="ui">WASD/Joy: Move | Q/E: Up/Down</div>
     
+    <div id="move-joy" class="joystick-container">
+        <div class="knob" id="move-knob"></div>
+    </div>
+    <div id="look-joy" class="joystick-container">
+        <div class="knob" id="look-knob"></div>
+    </div>
+    <div id="height-controls">
+        <div class="btn" id="btn-up">UP</div>
+        <div class="btn" id="btn-down">DN</div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
     
     <script>
@@ -71,6 +125,8 @@
         scene.add(diveLight.target);
 
         let yaw = 0, pitch = 0;
+        
+        // Desktop Mouse Look
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body) {
                 yaw -= e.movementX * 0.002;
@@ -80,8 +136,8 @@
             }
         });
 
-        document.body.addEventListener('click', () => {
-            document.body.requestPointerLock();
+        document.body.addEventListener('click', (e) => {
+            if (window.innerWidth > 1024) document.body.requestPointerLock();
         });
 
         function simplexNoise(x, z, seed) {
@@ -178,9 +234,13 @@
         ocean.position.y = -1;
         scene.add(ocean);
 
+        // Input State
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+        let joyX = 0, joyY = 0; // -1 to 1
+        let lookX = 0, lookY = 0; // -1 to 1
         let velocity = new THREE.Vector3();
-        
+
+        // Keyboard
         document.addEventListener('keydown', (e) => {
             if(e.code === 'KeyW') moveForward = true;
             if(e.code === 'KeyS') moveBackward = true;
@@ -198,12 +258,71 @@
             if(e.code === 'KeyQ') moveDown = false;
         });
 
+        // Joystick Logic
+        function setupJoystick(containerId, knobId, callback) {
+            const container = document.getElementById(containerId);
+            const knob = document.getElementById(knobId);
+            let active = false;
+
+            const handleTouch = (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                let dx = touch.clientX - centerX;
+                let dy = touch.clientY - centerY;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                const maxRadius = rect.width / 2;
+
+                if (distance > maxRadius) {
+                    dx *= maxRadius / distance;
+                    dy *= maxRadius / distance;
+                }
+
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+                callback(dx / maxRadius, dy / maxRadius);
+            };
+
+            container.addEventListener('touchstart', (e) => { active = true; handleTouch(e); });
+            container.addEventListener('touchmove', (e) => { if(active) handleTouch(e); });
+            container.addEventListener('touchend', () => { 
+                active = false; 
+                knob.style.transform = `translate(0, 0)`; 
+                callback(0, 0); 
+            });
+        }
+
+        setupJoystick('move-joy', 'move-knob', (x, y) => {
+            joyX = x;
+            joyY = y;
+        });
+
+        setupJoystick('look-joy', 'look-knob', (x, y) => {
+            lookX = x;
+            lookY = y;
+        });
+
+        document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); moveUp = true; });
+        document.getElementById('btn-up').addEventListener('touchend', () => moveUp = false);
+        document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); moveDown = true; });
+        document.getElementById('btn-down').addEventListener('touchend', () => moveDown = false);
+
         let prevTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
             
+            // Mobile Camera Look
+            if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
+                yaw -= lookX * 0.05;
+                pitch -= lookY * 0.05;
+                pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+                camera.rotation.set(pitch, yaw, 0, 'YXZ');
+            }
+
             const isUnderwater = camera.position.y < -1;
 
             if (isUnderwater) {
@@ -212,12 +331,9 @@
                 sky.visible = false;
                 sun.visible = false;
                 diveLight.visible = true;
-                
                 diveLight.position.copy(camera.position);
                 const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
                 diveLight.target.position.copy(targetPos);
-                
-                // Disable clipping plane when underwater so we can see the bottom
                 terrainClippingPlane.constant = 1000; 
             } else {
                 scene.fog = new THREE.FogExp2(0x87CEEB, 0.01);
@@ -225,8 +341,6 @@
                 sky.visible = true;
                 sun.visible = true;
                 diveLight.visible = false;
-                
-                // Re-enable clipping plane at water level (y = -1)
                 terrainClippingPlane.constant = -1;
             }
 
@@ -238,10 +352,12 @@
             const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
             const up = new THREE.Vector3(0, 1, 0);
             
-            if (moveForward) velocity.add(forward.clone().multiplyScalar(40 * delta));
-            if (moveBackward) velocity.add(forward.clone().multiplyScalar(-40 * delta));
-            if (moveLeft) velocity.add(right.clone().multiplyScalar(-40 * delta));
-            if (moveRight) velocity.add(right.clone().multiplyScalar(40 * delta));
+            // Merge Keyboard and Joystick
+            const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY;
+            const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX;
+            
+            if (moveZ !== 0) velocity.add(forward.clone().multiplyScalar(moveZ * 40 * delta));
+            if (moveX !== 0) velocity.add(right.clone().multiplyScalar(moveX * 40 * delta));
             if (moveUp) velocity.add(up.clone().multiplyScalar(40 * delta));
             if (moveDown) velocity.add(up.clone().multiplyScalar(-40 * delta));
             
