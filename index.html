@@ -75,9 +75,13 @@
         });
 
         function simplexNoise(x, z, seed) {
-            return Math.sin(x * 0.1 + seed) * Math.cos(z * 0.1 + seed) * 2 +
-                   Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 4 +
-                   Math.sin(x * 0.02 + seed) * Math.sin(z * 0.02 + seed) * 6;
+            // Drastically varied heightmap using multiple octaves of different scales and high multipliers
+            return (
+                Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 10 +
+                Math.sin(x * 0.2 + seed * 1.1) * Math.cos(z * 0.2 + seed * 1.2) * 5 +
+                Math.sin(x * 0.01 + seed * 0.5) * Math.sin(z * 0.01 + seed * 0.8) * 20 +
+                Math.cos(x * 0.1 + z * 0.1 + seed) * 8
+            );
         }
 
         const CHUNK_SIZE = 64;
@@ -100,13 +104,14 @@
                 const worldX = vertices[i] + cx * CHUNK_SIZE;
                 const worldZ = vertices[i + 2] + cz * CHUNK_SIZE;
                 
-                // Adjusted height: offset by +2 to ensure more terrain is above sea level (-1)
-                let height = simplexNoise(worldX, worldZ, seedOffset) * 0.5 + 2; 
+                // Shift height down so only the top 20% of the variance peaks above sea level (-1)
+                // Height range is roughly -40 to +40. Shifting by -15 keeps mostly underwater.
+                let height = simplexNoise(worldX, worldZ, seedOffset) - 15; 
                 vertices[i + 1] = height;
 
                 const c = new THREE.Color();
                 if (height > 2) c.copy(colorGrass);
-                else if (height > 0) c.copy(colorSand);
+                else if (height > -1) c.copy(colorSand);
                 else c.copy(colorDirt);
                 colors.push(c.r, c.g, c.b);
             }
@@ -148,7 +153,7 @@
 
         camera.position.set(0, 10, 0);
 
-        const waterGeo = new THREE.PlaneGeometry(2000, 2000);
+        const waterGeo = new THREE.PlaneGeometry(4000, 4000);
         const waterMat = new THREE.MeshLambertMaterial({ 
             color: 0x001a33, 
             transparent: true, 
@@ -196,13 +201,6 @@
                 renderer.setClearColor(0x87CEEB);
                 sky.visible = true;
             }
-
-            // Only hide chunks if we are above water AND the prompt requires "nothing beneath the water".
-            // However, to allow islands, we only hide the chunks when underwater (to simulate visibility) 
-            // OR we keep them visible to see islands. Since user wants islands to walk on, we keep them visible.
-            chunks.forEach(mesh => {
-                mesh.visible = true; 
-            });
 
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
