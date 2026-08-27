@@ -237,8 +237,8 @@
 		const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0)
 		scene.add(directionalLight)
 
-		const diveLight = new THREE.SpotLight(0xffffff, 33)
-		diveLight.distance = 60
+		const diveLight = new THREE.SpotLight(0xffffff, 20)
+		diveLight.distance = 30
 		diveLight.angle = Math.PI / 2.5
 		diveLight.penumbra = 0.2
 		diveLight.decay = 1
@@ -823,7 +823,12 @@
 				rain.visible = true
 				sky.visible = true
 				stars.visible = true
-				diveLight.visible = false
+				diveLight.visible = true
+				diveLight.position.copy(camera.position)
+				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(
+					camera.quaternion,
+				).add(camera.position)
+				diveLight.target.position.copy(targetPos)
 				terrainClippingPlane.constant = -1
 				underwaterMaterial.uniforms.uUnderwater.value = 0.0
 			}
