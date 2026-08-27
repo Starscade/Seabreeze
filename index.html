@@ -691,29 +691,32 @@
 
 		let currentTime = prevTime + startTimeOffset
 
-		const rainCount = 2000
+		// FIXED RAIN SYSTEM
+		const rainCount = 2500
 		const rainGeo = new THREE.BufferGeometry()
 		const rainPos = new Float32Array(rainCount * 3)
 		const rainVel = new Float32Array(rainCount)
+		const RAIN_BOUNDS = 60 // Size of the rain box around the camera
+		
 		for (let i = 0; i < rainCount; i++) {
-			rainPos[i * 3] = (Math.random() - 0.5) * 100
-			rainPos[i * 3 + 1] = Math.random() * 100
-			rainPos[i * 3 + 2] = (Math.random() - 0.5) * 100
-			rainVel[i] = 20 + Math.random() * 20
+			rainPos[i * 3] = (Math.random() - 0.5) * RAIN_BOUNDS * 2
+			rainPos[i * 3 + 1] = Math.random() * RAIN_BOUNDS
+			rainPos[i * 3 + 2] = (Math.random() - 0.5) * RAIN_BOUNDS * 2
+			rainVel[i] = 40 + Math.random() * 30
 		}
 		rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3))
 		const rainMat = new THREE.PointsMaterial({
-			color: 0xaaaaaa,
+			color: 0xffffff,
 			depthTest: false,
 			opacity: 0,
-			size: 0.1,
+			size: 0.05,
 			transparent: true,
 		})
 		const rain = new THREE.Points(rainGeo, rainMat)
 		scene.add(rain)
 
 		let isRaining = false
-		let rainTimer = Math.random() * CYCLE_DURATION
+		let rainTimer = Math.random() * 10 // Start sooner for testing
 
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
@@ -772,7 +775,7 @@
 			}
 
 			if (isRaining) {
-				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.6, 0.01)
+				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.3, 0.01)
 				currentSky.lerp(new THREE.Color(0x444444), 0.3)
 				currentHorizon.lerp(new THREE.Color(0x444444), 0.3)
 			} else {
@@ -873,11 +876,14 @@
 			sky.position.copy(camera.position)
 			stars.position.copy(camera.position)
 
+			// FIXED RAIN ANIMATION
 			const rainPositions = rainGeo.attributes.position.array
 			for (let i = 0; i < rainCount; i++) {
 				rainPositions[i * 3 + 1] -= rainVel[i] * delta
-				if (rainPositions[i * 3 + 1] < -1) {
-					rainPositions[i * 3 + 1] = 100
+				if (rainPositions[i * 3 + 1] < -RAIN_BOUNDS) {
+					rainPositions[i * 3 + 1] = RAIN_BOUNDS
+					rainPositions[i * 3] = (Math.random() - 0.5) * RAIN_BOUNDS * 2
+					rainPositions[i * 3 + 2] = (Math.random() - 0.5) * RAIN_BOUNDS * 2
 				}
 			}
 			rainGeo.attributes.position.needsUpdate = true
