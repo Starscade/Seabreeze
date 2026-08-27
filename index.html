@@ -713,6 +713,8 @@
 		const boatSailGeo = new THREE.ConeGeometry(1, 4, 4)
 		const boatSailMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
 		
+		const lightGeo = new THREE.SphereGeometry(0.15, 6, 6)
+
 		function createBoat() {
 			const group = new THREE.Group()
 			const hull = new THREE.Mesh(boatHullGeo, boatHullMat)
@@ -723,6 +725,22 @@
 			sail.position.y = 2
 			group.add(sail)
 			
+			// PORT LIGHT (Red) - Left side
+			const portLightGeo = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0x00ff00 }))
+			portLightGeo.position.set(-1, 0.6, 0)
+			group.add(portLightGeo)
+			const portPoint = new THREE.PointLight(0xff0000, 1, 10)
+			portPoint.position.set(-1, 0.6, 0)
+			group.add(portPoint)
+
+			// STARBOARD LIGHT (Green) - Right side
+			const stbdLightGeo = new THREE.Mesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xff0000 }))
+			stbdLightGeo.position.set(1, 0.6, 0)
+			group.add(stbdLightGeo)
+			const stbdPoint = new THREE.PointLight(0x00ff00, 1, 10)
+			stbdPoint.position.set(1, 0.6, 0)
+			group.add(stbdPoint)
+
 			// Random start position in a circle around origin, far away
 			const angle = Math.random() * Math.PI * 2
 			const dist = 200 + Math.random() * 200
