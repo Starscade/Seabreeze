@@ -663,8 +663,8 @@
 
 		let prevTime = performance.now()
 
-		let startTimeOffset = Math.random() * CYCLE_DURATION
 		const urlParams = new URLSearchParams(window.location.search)
+		let startTimeOffset = Math.random() * CYCLE_DURATION
 		const timeParam = urlParams.get('time')
 		if (timeParam && timeParam.length === 4) {
 			const h = parseInt(timeParam.substring(0, 2), 10)
@@ -703,8 +703,8 @@
 		const rain = new THREE.Points(rainGeo, rainMat)
 		scene.add(rain)
 
-		let isRaining = false
-		let rainTimer = Math.random() * 10 // Start sooner for testing
+		let isRaining = urlParams.has('rain')
+		let rainTimer = Math.random() * CYCLE_DURATION
 
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
