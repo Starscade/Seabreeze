@@ -1,9 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html
+	lang="en"
+	oncontextmenu="return false"
+>
 	<head>
 		<link
 			href="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 			rel="icon">
+		<link
+			href="manifest.json"
+			rel="manifest"
+		>
+		<meta charset="UTF-8">
+		<meta
+			content="LightSkyBlue"
+			name="theme-color"
+		>
+		<meta
+			content="initial-scale=1,interactive-widget=resizes-content,maximum-scale=1,user-scalable=no,width=device-width"
+			name="viewport"
+		>
 		<title>&#127758;</title>
 		<style>
 		body {
@@ -983,6 +999,7 @@
 				if (el) el.style.display = isLocked ? 'none' : 'block'
 			})
 		})
+		navigator.serviceWorker.register('work.js')
 		</script>
 	</body>
 </html>
