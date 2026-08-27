@@ -83,15 +83,6 @@
 			margin-bottom: 5px;
 		}
 
-		#fs-btn {
-			position: absolute;
-			top: 10px;
-			left: 10px;
-			width: 50px;
-			height: 50px;
-			border-radius: 8px;
-		}
-
 		#game-clock {
 			font-size: 14px;
 			opacity: 0.9;
@@ -133,8 +124,6 @@
 			<div id="altimeter">ALT: 0m</div>
 			<div id="game-clock">00:00</div>
 		</div>
-
-		<div id="fs-btn" class="btn">FULL</div>
 
 		<div id="move-joy" class="joystick-container">
 			<div class="knob" id="move-knob"></div>
@@ -647,14 +636,6 @@
 			'touchend',
 			() => moveDown = false,
 		)
-
-		document.getElementById('fs-btn').addEventListener('click', () => {
-			if (!document.fullscreenElement) {
-				document.documentElement.requestFullscreen().catch((e) => {})
-			} else {
-				document.exitFullscreen()
-			}
-		})
 
 		const compassEl = document.getElementById('compass')
 		const altEl = document.getElementById('altimeter')
