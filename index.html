@@ -818,7 +818,7 @@
 				terrainClippingPlane.constant = 1000
 				underwaterMaterial.uniforms.uUnderwater.value = 1.0
 			} else {
-				const fogColor = new THREE.Color().copy(currentSky)
+				const fogColor = new THREE.Color().copy(currentHorizon)
 				scene.fog = new THREE.FogExp2(fogColor, 0.01)
 				renderer.setClearColor(fogColor)
 				rain.visible = true
