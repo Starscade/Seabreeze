@@ -829,7 +829,7 @@
 					camera.quaternion,
 				).add(camera.position)
 				diveLight.target.position.copy(targetPos)
-				terrainClippingPlane.constant = -1
+				terrainClippingPlane.constant = 1
 				underwaterMaterial.uniforms.uUnderwater.value = 0.0
 			}
 
