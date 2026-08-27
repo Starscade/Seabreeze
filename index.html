@@ -764,8 +764,14 @@
 
 			if (isRaining) {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.3, 0.01)
-				currentSky.lerp(new THREE.Color(0x444444), 0.3)
-				currentHorizon.lerp(new THREE.Color(0x444444), 0.3)
+				
+				// Gray shade based on time of day (sunHeight)
+				// Daytime rain is a lighter gray, nighttime rain is a darker gray
+				const rainGrayValue = 0.1 + (dayIntensity * 0.3); 
+				const rainColor = new THREE.Color(rainGrayValue, rainGrayValue, rainGrayValue);
+				
+				currentSky.lerp(rainColor, 0.7);
+				currentHorizon.lerp(rainColor, 0.7);
 			} else {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
 			}
