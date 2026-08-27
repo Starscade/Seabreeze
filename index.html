@@ -267,7 +267,7 @@
 				const size = 10 + Math.random() * 20
 				const puffGeo = new THREE.SphereGeometry(size, 8, 8)
 				const puff = new THREE.Mesh(puffGeo, cloudMaterial)
-				puff.material.fog = false
+				puff.material.fog = true
 				puff.position.set(
 					(Math.random() - 0.5) * 40,
 					(Math.random() - 0.5) * 20,
