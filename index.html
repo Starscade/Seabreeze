@@ -704,9 +704,10 @@
 		rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3))
 		const rainMat = new THREE.PointsMaterial({
 			color: 0xaaaaaa,
+			depthTest: false,
+			opacity: 0,
 			size: 0.1,
 			transparent: true,
-			opacity: 0,
 		})
 		const rain = new THREE.Points(rainGeo, rainMat)
 		scene.add(rain)
