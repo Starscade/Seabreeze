@@ -706,6 +706,58 @@
 		let isRaining = urlParams.has('rain')
 		let rainTimer = Math.random() * CYCLE_DURATION
 
+		// BOAT SYSTEM
+		const boats = []
+		const boatHullGeo = new THREE.BoxGeometry(2, 0.8, 5)
+		const boatHullMat = new THREE.MeshLambertMaterial({ color: 0x7d5c3e })
+		const boatSailGeo = new THREE.ConeGeometry(1, 4, 4)
+		const boatSailMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+		
+		function createBoat() {
+			const group = new THREE.Group()
+			const hull = new THREE.Mesh(boatHullGeo, boatHullMat)
+			hull.position.y = 0.2
+			group.add(hull)
+			
+			const sail = new THREE.Mesh(boatSailGeo, boatSailMat)
+			sail.position.y = 2
+			group.add(sail)
+			
+			// Random start position in a circle around origin, far away
+			const angle = Math.random() * Math.PI * 2
+			const dist = 200 + Math.random() * 200
+			group.position.set(Math.cos(angle) * dist, -0.5, Math.sin(angle) * dist)
+			
+			// Move towards center or across
+			const targetAngle = angle + Math.PI + (Math.random() - 0.5)
+			const direction = new THREE.Vector3(Math.cos(targetAngle), 0, Math.sin(targetAngle))
+			
+			group.lookAt(group.position.clone().add(direction))
+			
+			scene.add(group)
+			return {
+				mesh: group,
+				dir: direction,
+				speed: 2 + Math.random() * 3,
+				life: 0
+			}
+		}
+
+		function updateBoats(delta) {
+			if (boats.length < 3 && Math.random() < 0.002) {
+				boats.push(createBoat())
+			}
+			for (let i = boats.length - 1; i >= 0; i--) {
+				const b = boats[i]
+				b.mesh.position.add(b.dir.clone().multiplyScalar(b.speed * delta))
+				b.life += delta
+				if (b.life > 60) {
+					scene.remove(b.mesh)
+					boats.splice(i, 1)
+				}
+			}
+		}
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
@@ -885,6 +937,7 @@
 
 			updateChunks()
 			updateClouds()
+			updateBoats(delta)
 			updateHUD(time)
 
 			renderer.setRenderTarget(renderTarget)
