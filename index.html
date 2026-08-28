@@ -222,6 +222,30 @@
 		sun.material.fog = false
 		scene.add(sun)
 
+		const glowCanvas = document.createElement('canvas')
+		glowCanvas.width = 64
+		glowCanvas.height = 64
+		const ctx = glowCanvas.getContext('2d')
+		const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+		gradient.addColorStop(0, 'rgba(255, 255, 200, 1)')
+		gradient.addColorStop(0.2, 'rgba(255, 255, 150, 0.5)')
+		gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.1)')
+		gradient.addColorStop(1, 'rgba(255, 200, 100, 0)')
+		ctx.fillStyle = gradient
+		ctx.fillRect(0, 0, 64, 64)
+
+		const glowTexture = new THREE.CanvasTexture(glowCanvas)
+		const glowMat = new THREE.SpriteMaterial({
+			map: glowTexture,
+			color: 0xfff5aa,
+			transparent: true,
+			blending: THREE.AdditiveBlending,
+			depthTest: true,
+		})
+		const sunGlow = new THREE.Sprite(glowMat)
+		sunGlow.scale.set(150, 150, 1)
+		scene.add(sunGlow)
+
 		const camera = new THREE.PerspectiveCamera(
 			75,
 			window.innerWidth / window.innerHeight,
@@ -812,7 +836,9 @@
 			const sunX = Math.cos(angle) * sunDist
 			const sunY = Math.sin(angle) * sunDist
 			const sunZ = -Math.sin(angle) * sunDist
-			sun.position.copy(camera.position).add(new THREE.Vector3(sunX, sunY, sunZ))
+			const sunPos = new THREE.Vector3(sunX, sunY, sunZ).add(camera.position)
+			sun.position.copy(sunPos)
+			sunGlow.position.copy(sunPos)
 			directionalLight.position.copy(sun.position)
 
 			const sunHeight = Math.sin(angle)
@@ -878,6 +904,7 @@
 
 			starMat.uniforms.uOpacity.value = Math.max(0, Math.min(1, -sunHeight))
 			sun.visible = sunHeight > -0.1
+			sunGlow.visible = sunHeight > -0.1
 
 			if (document.pointerLockElement !== document.body) {
 				if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
