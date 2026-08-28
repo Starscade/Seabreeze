@@ -952,10 +952,10 @@
 				velocity.clone().multiplyScalar(delta),
 			)
 
-			const terrainHeight = simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
+			const terrainCollisionHeight = 1 + simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
 
-			if (nextPos.y < terrainHeight) {
-				nextPos.y = terrainHeight
+			if (nextPos.y < terrainCollisionHeight) {
+				nextPos.y = terrainCollisionHeight
 				velocity.set(0, 0, 0)
 			}
 
