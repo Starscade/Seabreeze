@@ -401,9 +401,11 @@
 		const RENDER_DISTANCE = 3
 		const chunks = new Map()
 		const seedOffset = Math.random() * 1000
+		const colorSnow = new THREE.Color(0xeeeeff)
 		const colorGrass = new THREE.Color(0x5db03a)
 		const colorSand = new THREE.Color(0xf0d0b0)
-		const colorDirt = new THREE.Color(0x9a5a2a)
+		const colorClay = new THREE.Color(0x9a5a2a)
+		const colorRock = new THREE.Color(0x4b2d18)
 
 		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1)
 
@@ -460,9 +462,11 @@
 				let height = simplexNoise(worldX, worldZ, seedOffset) - 15
 				vertices[i + 1] = height
 				const c = new THREE.Color()
-				if (height > 2) c.copy(colorGrass)
+				if (height > 20) c.copy(colorSnow)
+				else if (height > 2) c.copy(colorGrass)
 				else if (height > -1) c.copy(colorSand)
-				else c.copy(colorDirt)
+				else if (height > -20) c.copy(colorClay)
+				else c.copy(colorRock)
 				colors.push(c.r, c.g, c.b)
 
 				if (Math.random() < 0.02) {
