@@ -757,6 +757,32 @@
 
 		let currentTime = prevTime + startTimeOffset
 
+		// AUDIO SYSTEM
+		const audio = new Audio('ocean.ogg')
+		audio.loop = true
+		let audioStarted = false
+
+		function updateAudio() {
+			if (!audioStarted) return
+			const alt = camera.position.y
+			// Max volume at altitude -1 (water level), fades out as altitude increases
+			// Volume = 1.0 at alt <= -1, 0.0 at alt >= 50
+			const volume = Math.max(0, Math.min(1, 1 - (alt / 100)))
+			audio.volume = volume
+		}
+
+		// Start audio on first user interaction
+		const startAudio = () => {
+			if (!audioStarted) {
+				audio.play().catch(() => {})
+				audioStarted = true
+			}
+			window.removeEventListener('mousedown', startAudio)
+			window.removeEventListener('touchstart', startAudio)
+		}
+		window.addEventListener('mousedown', startAudio)
+		window.addEventListener('touchstart', startAudio)
+
 		// FIXED RAIN SYSTEM
 		const rainCount = 2500
 		const rainGeo = new THREE.BufferGeometry()
@@ -1149,6 +1175,7 @@
 			updateBoats(delta)
 			updateBirds(delta, time)
 			updateHUD(time)
+			updateAudio()
 
 			renderer.setRenderTarget(renderTarget)
 			renderer.render(scene, camera)
