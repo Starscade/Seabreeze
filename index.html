@@ -462,10 +462,10 @@
 
 		function simplexNoise(x, z, seed) {
 			return (
-				Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * 10 +
-				Math.sin(x * 0.2 + seed * 1.1) * Math.cos(z * 0.2 + seed * 1.2) * 5 +
-				Math.sin(x * 0.01 + seed * 0.5) * Math.sin(z * 0.01 + seed * 0.8) * 20 +
-				Math.cos(x * 0.1 + z * 0.1 + seed) * 8
+				Math.sin(x * 0.05 + seed) * Math.cos(z * 0.05 + seed) * -10 +
+				Math.sin(x * 0.2 + seed * 1.1) * Math.cos(z * 0.2 + seed * 1.2) * -5 +
+				Math.sin(x * 0.01 + seed * 0.5) * Math.sin(z * 0.01 + seed * 0.8) * 30 +
+				Math.cos(x * 0.1 + z * 0.01 + seed) * -8
 			)
 		}
 
