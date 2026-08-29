@@ -1024,20 +1024,22 @@
 			let currentSky = new THREE.Color()
 			let currentHorizon = new THREE.Color()
 
-			if (sunHeight > 0.2) {
-				currentSky.lerpColors(sunriseSky, daySky, (sunHeight - 0.2) / 0.8)
-				currentHorizon.lerpColors(
-					sunriseHorizon,
-					dayHorizon,
-					(sunHeight - 0.2) / 0.8,
-				)
-			} else if (sunHeight > -0.2) {
-				const t = (sunHeight + 0.2) / 0.4
-				currentSky.lerpColors(nightSky, sunriseSky, t)
-				currentHorizon.lerpColors(nightHorizon, sunriseHorizon, t)
+			const sunlightTransitionThreshold = 0.2
+
+			if (sunHeight > sunlightTransitionThreshold) {
+				currentSky.copy(daySky);
+				currentHorizon.copy(dayHorizon);
+			} else if (sunHeight < -(sunlightTransitionThreshold)) {
+				currentSky.copy(nightSky);
+				currentHorizon.copy(nightHorizon);
+			} else if (sunHeight >= 0) {
+				const t = sunHeight / sunlightTransitionThreshold;
+				currentSky.lerpColors(sunriseSky, daySky, t);
+				currentHorizon.lerpColors(sunriseHorizon, dayHorizon, t);
 			} else {
-				currentSky.copy(nightSky)
-				currentHorizon.copy(nightHorizon)
+				const t = (sunHeight + sunlightTransitionThreshold) / sunlightTransitionThreshold;
+				currentSky.lerpColors(nightSky, sunriseSky, t);
+				currentHorizon.lerpColors(nightHorizon, sunriseHorizon, t);
 			}
 
 			rainTimer -= delta
