@@ -269,7 +269,7 @@
 		})
 		const moonCrescent = new THREE.Sprite(moonMat)
 		moonCrescent.scale.set(80, 80, 1)
-		const moonDist = 400
+		const moonDist = 300
 		moonCrescent.position.set(
 			-moonDist * 0.707,
 			moonDist * 0.707,
@@ -1039,6 +1039,7 @@
 			camera.position.copy(nextPos)
 			sky.position.copy(camera.position)
 			stars.position.copy(camera.position)
+			moonCrescent.position.copy(camera.position).add(new THREE.Vector3(-moonDist * 0.707, moonDist * 0.707, -moonDist * 0.707));
 
 			// FIXED RAIN ANIMATION
 			const rainPositions = rainGeo.attributes.position.array
