@@ -990,6 +990,69 @@
 			}
 		}
 
+		// FISH SYSTEM
+		const fishs = []
+		const fishGeo = new THREE.ConeGeometry(0.1, 0.3, 4)
+		fishGeo.rotateX(THREE.MathUtils.degToRad(-90))
+		const fishMatPink = new THREE.MeshLambertMaterial({ color: 0xff69b4 })
+		const fishMatOrange = new THREE.MeshLambertMaterial({ color: 0xffa500 })
+
+		function spawnFishSchool() {
+			const schoolSize = Math.floor(Math.random() * 5)
+			const color = Math.random() > 0.5 ? fishMatPink : fishMatOrange
+			const centerX = camera.position.x + (Math.random() - 0.5) * 20
+			const centerY = camera.position.y + (Math.random() - 0.5) * 10
+			const centerZ = camera.position.z + (Math.random() - 0.5) * 20
+			const dir = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize()
+
+			for (let i = 0; i < schoolSize; i++) {
+				const fish = new THREE.Mesh(fishGeo, color)
+				fish.scale.z = 3 * Math.random()
+				fish.position.set(
+					centerX + (Math.random() - 0.5) * 2,
+					centerY + (Math.random() - 0.5) * 2,
+					centerZ + (Math.random() - 0.5) * 2
+				)
+				fish.lookAt(fish.position.clone().add(dir))
+				scene.add(fish)
+				fishs.push({
+					mesh: fish,
+					dir: dir.clone(),
+					phase: Math.random() * Math.PI * 2,
+					speed: 1 + Math.random() * 2,
+					life: 10 + Math.random() * 10
+				})
+			}
+		}
+
+		function updateFish(delta, time) {
+			if (camera.position.y > -1) {
+				// Clean up fish when going to surface
+				for (let i = fishs.length - 1; i >= 0; i--) {
+					scene.remove(fishs[i].mesh)
+					fishs.splice(i, 1)
+				}
+				return
+			}
+
+			if (Math.random() < 0.01 && camera.position.y > -20) spawnFishSchool()
+
+			for (let i = fishs.length - 1; i >= 0; i--) {
+				const f = fishs[i]
+				f.life -= delta
+				
+				// Move in direction with slight wave
+				const move = f.dir.clone().multiplyScalar(f.speed * delta)
+				move.y += Math.sin(time * 0.005 + f.phase) * 0.01
+				f.mesh.position.add(move)
+				
+				if (f.life <= 0 || f.mesh.position.distanceTo(camera.position) > 50) {
+					scene.remove(f.mesh)
+					fishs.splice(i, 1)
+				}
+			}
+		}
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
@@ -1194,6 +1257,7 @@
 			updateClouds()
 			updateBoats(delta)
 			updateBirds(delta, time)
+			updateFish(delta, time)
 			updateHUD(time)
 			updateAudio()
 
