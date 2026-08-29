@@ -227,6 +227,7 @@
 		const sunMat = new THREE.SpriteMaterial({
 			map: sunTexture,
 			transparent: true,
+			depthTest: true,
 		})
 		const sun = new THREE.Sprite(sunMat)
 		sun.material.fog = false
