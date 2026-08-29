@@ -277,7 +277,7 @@
 		const moonMat = new THREE.SpriteMaterial({
 			map: moonTexture,
 			transparent: true,
-			depthTest: true
+			depthTest: true,
 		})
 		const moonCrescent = new THREE.Sprite(moonMat)
 		moonCrescent.scale.set(80, 80, 1)
@@ -882,7 +882,7 @@
 			const wingR = new THREE.Mesh(birdWingGeo, birdMat)
 			wingR.position.x = 0.3
 			group.add(wingR)
-			
+
 			group.position.set(offsetX, offsetY, offsetZ)
 			return {
 				mesh: group,
@@ -890,7 +890,7 @@
 				wingR: wingR,
 				phase: Math.random() * Math.PI * 2,
 				speed: 10 + Math.random() * 5,
-				offset: new THREE.Vector3(offsetX, offsetY, offsetZ)
+				offset: new THREE.Vector3(offsetX, offsetY, offsetZ),
 			}
 		}
 
@@ -899,13 +899,13 @@
 			const centerX = (Math.random() - 0.5) * 400
 			const centerZ = 400 + Math.random() * 400 // Spawn south
 			const centerY = 40 + Math.random() * 60
-			
+
 			const flock = []
 			for (let i = 0; i < flockSize; i++) {
 				const bird = createBird(
 					centerX + (Math.random() - 0.5) * 20,
 					centerZ + (Math.random() - 0.5) * 20,
-					centerY + (Math.random() - 0.5) * 10
+					centerY + (Math.random() - 0.5) * 10,
 				)
 				birdGroup.add(bird.mesh)
 				flock.push(bird)
@@ -913,7 +913,7 @@
 			birds.push({
 				members: flock,
 				centerZ: centerZ,
-				speed: 10 + Math.random() * 5
+				speed: 10 + Math.random() * 5,
 			})
 		}
 
@@ -923,24 +923,26 @@
 			for (let i = birds.length - 1; i >= 0; i--) {
 				const flock = birds[i]
 				flock.centerZ -= flock.speed * delta // Migrate South to North (Z decreasing)
-				
-				flock.members.forEach(bird => {
-					bird.mesh.position.z = flock.centerZ + bird.offset.z - (flock.centerZ - 400) * 0.1 // simplified relative movement
+
+				flock.members.forEach((bird) => {
+					bird.mesh.position.z = flock.centerZ + bird.offset.z -
+						(flock.centerZ - 400) * 0.1 // simplified relative movement
 					// Correcting: just move them all North
-					bird.mesh.position.z -= flock.speed * delta;
-					
+					bird.mesh.position.z -= flock.speed * delta
+
 					// Wing flapping
 					const flap = Math.sin(time * 0.01 + bird.phase)
 					bird.wingL.rotation.z = flap * 0.8
 					bird.wingR.rotation.z = -flap * 0.8
-					
+
 					// Subtle bobbing
-					bird.mesh.position.y = bird.offset.y + Math.sin(time * 0.002 + bird.phase) * 2
+					bird.mesh.position.y = bird.offset.y +
+						Math.sin(time * 0.002 + bird.phase) * 2
 				})
 
 				// Remove if far North
 				if (flock.centerZ < -600) {
-					flock.members.forEach(b => birdGroup.remove(b.mesh))
+					flock.members.forEach((b) => birdGroup.remove(b.mesh))
 					birds.splice(i, 1)
 				}
 			}
@@ -1125,7 +1127,9 @@
 			camera.position.copy(nextPos)
 			sky.position.copy(camera.position)
 			stars.position.copy(camera.position)
-			moonCrescent.position.copy(camera.position).add(new THREE.Vector3(-moonDist * 0.707, moonDist * 0.707, -moonDist * 0.707));
+			moonCrescent.position.copy(camera.position).add(
+				new THREE.Vector3(-moonDist * 0.707, moonDist * 0.707, -moonDist * 0.707),
+			)
 
 			// FIXED RAIN ANIMATION
 			const rainPositions = rainGeo.attributes.position.array
