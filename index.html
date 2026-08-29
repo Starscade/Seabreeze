@@ -213,13 +213,24 @@
 		stars.material.fog = false
 		scene.add(stars)
 
-		const sunGeo = new THREE.SphereGeometry(24, 16, 16)
-		const sunMat = new THREE.MeshBasicMaterial({
-			color: 0xFFFFAA,
-			depthTest: false,
+		// SUN SYSTEM - Now using a 2D Canvas-based Sprite for consistent look
+		const sunCanvas = document.createElement('canvas')
+		sunCanvas.width = 256
+		sunCanvas.height = 256
+		const sctx = sunCanvas.getContext('2d')
+		sctx.fillStyle = '#FFFFAA'
+		sctx.beginPath()
+		sctx.arc(128, 128, 100, 0, Math.PI * 2)
+		sctx.fill()
+
+		const sunTexture = new THREE.CanvasTexture(sunCanvas)
+		const sunMat = new THREE.SpriteMaterial({
+			map: sunTexture,
+			transparent: true,
 		})
-		const sun = new THREE.Mesh(sunGeo, sunMat)
+		const sun = new THREE.Sprite(sunMat)
 		sun.material.fog = false
+		sun.scale.set(48, 48, 1)
 		scene.add(sun)
 
 		const glowCanvas = document.createElement('canvas')
