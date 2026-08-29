@@ -864,6 +864,88 @@
 			}
 		}
 
+		// BIRD SYSTEM
+		const birds = []
+		const birdGroup = new THREE.Group()
+		scene.add(birdGroup)
+		const birdMat = new THREE.MeshBasicMaterial({ color: 0xffffff })
+		const birdBodyGeo = new THREE.BoxGeometry(0.2, 0.1, 0.4)
+		const birdWingGeo = new THREE.BoxGeometry(0.5, 0.02, 0.2)
+
+		function createBird(offsetX, offsetZ, offsetY) {
+			const group = new THREE.Group()
+			const body = new THREE.Mesh(birdBodyGeo, birdMat)
+			group.add(body)
+			const wingL = new THREE.Mesh(birdWingGeo, birdMat)
+			wingL.position.x = -0.3
+			group.add(wingL)
+			const wingR = new THREE.Mesh(birdWingGeo, birdMat)
+			wingR.position.x = 0.3
+			group.add(wingR)
+			
+			group.position.set(offsetX, offsetY, offsetZ)
+			return {
+				mesh: group,
+				wingL: wingL,
+				wingR: wingR,
+				phase: Math.random() * Math.PI * 2,
+				speed: 10 + Math.random() * 5,
+				offset: new THREE.Vector3(offsetX, offsetY, offsetZ)
+			}
+		}
+
+		function spawnFlock() {
+			const flockSize = Math.floor(Math.random() * 10)
+			const centerX = (Math.random() - 0.5) * 400
+			const centerZ = 400 + Math.random() * 400 // Spawn south
+			const centerY = 40 + Math.random() * 60
+			
+			const flock = []
+			for (let i = 0; i < flockSize; i++) {
+				const bird = createBird(
+					centerX + (Math.random() - 0.5) * 20,
+					centerZ + (Math.random() - 0.5) * 20,
+					centerY + (Math.random() - 0.5) * 10
+				)
+				birdGroup.add(bird.mesh)
+				flock.push(bird)
+			}
+			birds.push({
+				members: flock,
+				centerZ: centerZ,
+				speed: 10 + Math.random() * 5
+			})
+		}
+
+		function updateBirds(delta, time) {
+			if (Math.random() < 0.002) spawnFlock()
+
+			for (let i = birds.length - 1; i >= 0; i--) {
+				const flock = birds[i]
+				flock.centerZ -= flock.speed * delta // Migrate South to North (Z decreasing)
+				
+				flock.members.forEach(bird => {
+					bird.mesh.position.z = flock.centerZ + bird.offset.z - (flock.centerZ - 400) * 0.1 // simplified relative movement
+					// Correcting: just move them all North
+					bird.mesh.position.z -= flock.speed * delta;
+					
+					// Wing flapping
+					const flap = Math.sin(time * 0.01 + bird.phase)
+					bird.wingL.rotation.z = flap * 0.8
+					bird.wingR.rotation.z = -flap * 0.8
+					
+					// Subtle bobbing
+					bird.mesh.position.y = bird.offset.y + Math.sin(time * 0.002 + bird.phase) * 2
+				})
+
+				// Remove if far North
+				if (flock.centerZ < -600) {
+					flock.members.forEach(b => birdGroup.remove(b.mesh))
+					birds.splice(i, 1)
+				}
+			}
+		}
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
@@ -1061,6 +1143,7 @@
 			updateChunks()
 			updateClouds()
 			updateBoats(delta)
+			updateBirds(delta, time)
 			updateHUD(time)
 
 			renderer.setRenderTarget(renderTarget)
