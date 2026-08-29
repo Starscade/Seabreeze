@@ -246,6 +246,43 @@
 		sunGlow.scale.set(150, 150, 1)
 		scene.add(sunGlow)
 
+		// MOON SYSTEM - Now using a 2D Canvas-based Sprite for a clean boolean crescent
+		const moonCanvas = document.createElement('canvas')
+		moonCanvas.width = 256
+		moonCanvas.height = 256
+		const mctx = moonCanvas.getContext('2d')
+		mctx.globalCompositeOperation = 'source-over'
+		mctx.fillStyle = '#ffffdd'
+		mctx.beginPath()
+		mctx.arc(128, 128, 100, 0, Math.PI * 2)
+		mctx.fill()
+		mctx.globalCompositeOperation = 'destination-out'
+		mctx.beginPath()
+		mctx.arc(150, 128, 100, 0, Math.PI * 2)
+		mctx.fill()
+
+		const moonTexture = new THREE.CanvasTexture(moonCanvas)
+		const moonMat = new THREE.SpriteMaterial({
+			map: moonTexture,
+			transparent: true,
+			depthTest: true
+		})
+		const moonCrescent = new THREE.Sprite(moonMat)
+		moonCrescent.scale.set(80, 80, 1)
+		const moonDist = 400
+		moonCrescent.position.set(
+			-moonDist * 0.707,
+			moonDist * 0.707,
+			-moonDist * 0.707,
+		)
+		moonCrescent.visible = false
+		moonCrescent.material.fog = false
+		scene.add(moonCrescent)
+
+		const moonLight = new THREE.DirectionalLight(0xccccff, 3)
+		moonLight.position.copy(moonCrescent.position)
+		scene.add(moonLight)
+
 		const camera = new THREE.PerspectiveCamera(
 			75,
 			window.innerWidth / window.innerHeight,
@@ -906,6 +943,13 @@
 			sun.visible = sunHeight > -0.1
 			sunGlow.visible = sunHeight > -0.1
 
+			moonCrescent.visible = sunHeight < 0.1
+			moonLight.intensity = THREE.MathUtils.lerp(
+				moonLight.intensity,
+				sunHeight < 0.1 ? 1.5 : 0,
+				0.01,
+			)
+
 			if (document.pointerLockElement !== document.body) {
 				if (Math.abs(lookX) > 0.1 || Math.abs(lookY) > 0.1) {
 					yaw -= lookX * 0.05
@@ -930,6 +974,7 @@
 				rain.visible = false
 				sky.visible = false
 				stars.visible = false
+				moonCrescent.visible = false
 				diveLight.visible = true
 				diveLight.position.copy(camera.position)
 				const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(
@@ -983,7 +1028,8 @@
 				velocity.clone().multiplyScalar(delta),
 			)
 
-			const terrainCollisionHeight = 1 + simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
+			const terrainCollisionHeight = 1 +
+				simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
 
 			if (nextPos.y < terrainCollisionHeight) {
 				nextPos.y = terrainCollisionHeight
