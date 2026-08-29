@@ -263,14 +263,16 @@
 		moonCanvas.width = 256
 		moonCanvas.height = 256
 		const mctx = moonCanvas.getContext('2d')
+		mctx.translate(moonCanvas.width / 2, moonCanvas.height / 2)
+		mctx.rotate(Math.PI / -4)
 		mctx.globalCompositeOperation = 'source-over'
 		mctx.fillStyle = '#ffffdd'
 		mctx.beginPath()
-		mctx.arc(128, 128, 100, 0, Math.PI * 2)
+		mctx.arc(0, 0, 100, 0, Math.PI * 2)
 		mctx.fill()
 		mctx.globalCompositeOperation = 'destination-out'
 		mctx.beginPath()
-		mctx.arc(150, 128, 100, 0, Math.PI * 2)
+		mctx.arc(50, 0, 100, 0, Math.PI * 2)
 		mctx.fill()
 
 		const moonTexture = new THREE.CanvasTexture(moonCanvas)
