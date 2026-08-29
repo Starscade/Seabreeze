@@ -492,24 +492,18 @@
 			trunk.position.y = 2.5
 			group.add(trunk)
 
-			for (let i = 0; i < 6; i++) {
-				const leafGeo = new THREE.SphereGeometry(1.5, 8, 8)
-				const leaf = new THREE.Mesh(leafGeo, leafMat)
-				leaf.scale.set(1, 0.2, 0.5)
-				leaf.position.set(
-					Math.cos(i * Math.PI / 3) * 1,
-					5,
-					Math.sin(i * Math.PI / 3) * 1,
-				)
-				leaf.rotation.set(0.5, i * Math.PI / 3, 0)
-				group.add(leaf)
-			}
+			const leafGeo = new THREE.SphereGeometry(2, 6, 4)
+			const leaf = new THREE.Mesh(leafGeo, leafMat)
+			leaf.scale.set(1.2, 0.8, 1.2)
+			leaf.position.set(0, 6, 0)
+			group.add(leaf)
+
 			group.position.set(x, y, z)
 			return group
 		}
 
 		function createBush(x, y, z) {
-			const bushGeo = new THREE.SphereGeometry(0.8, 6, 6)
+			const bushGeo = new THREE.SphereGeometry(0.8, 6, 3)
 			const bush = new THREE.Mesh(bushGeo, bushMat)
 			bush.position.set(x, y + 0.4, z)
 			bush.scale.set(1, 0.7, 1)
