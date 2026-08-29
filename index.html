@@ -485,7 +485,7 @@
 		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
 		const bushMat = new THREE.MeshLambertMaterial({ color: 0x32CD32 })
 
-		function createPalmTree(x, y, z) {
+		function createTree(x, y, z) {
 			const group = new THREE.Group()
 			const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 5, 8)
 			const trunk = new THREE.Mesh(trunkGeo, trunkMat)
@@ -537,10 +537,10 @@
 
 				if (Math.random() < 0.02) {
 					if (height > 1) {
-						const palm = createPalmTree(worldX, height, worldZ)
+						const palm = createTree(worldX, height, worldZ)
 						chunkGroup.add(palm)
 					} else if (height > -1 && Math.random() < 0.3) {
-						const palm = createPalmTree(worldX, height, worldZ)
+						const palm = createTree(worldX, height, worldZ)
 						chunkGroup.add(palm)
 					}
 				}
