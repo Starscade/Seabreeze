@@ -484,7 +484,7 @@
 
 		const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
 		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
-		const bushMat = new THREE.MeshLambertMaterial({ color: 0x32CD32 })
+		const boulderMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
 
 		function createTree(x, y, z) {
 			const group = new THREE.Group()
@@ -503,12 +503,12 @@
 			return group
 		}
 
-		function createBush(x, y, z) {
-			const bushGeo = new THREE.SphereGeometry(0.8, 6, 3)
-			const bush = new THREE.Mesh(bushGeo, bushMat)
-			bush.position.set(x, y + 0.4, z)
-			bush.scale.set(1, 0.7, 1)
-			return bush
+		function createBoulder(x, y, z) {
+			const boulderGeo = new THREE.SphereGeometry(0.8, 6, 3)
+			const boulder = new THREE.Mesh(boulderGeo, boulderMat)
+			boulder.position.set(x, y + 0.4, z)
+			boulder.scale.set(1, 0.7, 1)
+			return boulder
 		}
 
 		function createChunk(cx, cz) {
@@ -536,17 +536,17 @@
 				else c.copy(colorRock)
 				colors.push(c.r, c.g, c.b)
 
-				if (Math.random() < 0.02) {
-					if (height > 1) {
-						const palm = createTree(worldX, height, worldZ)
-						chunkGroup.add(palm)
-					} else if (height > -1 && Math.random() < 0.3) {
-						const palm = createTree(worldX, height, worldZ)
-						chunkGroup.add(palm)
+				if (Math.random() < 0.1 && height < 15) {
+					if (height > 3) {
+						const tree = createTree(worldX, height, worldZ)
+						chunkGroup.add(tree)
+					} else if (height > -1 && Math.random() < 0.01) {
+						const tree = createTree(worldX, height, worldZ)
+						chunkGroup.add(tree)
 					}
 				}
-				if (Math.random() < 0.05 && height > 1) {
-					chunkGroup.add(createBush(worldX, height, worldZ))
+				if (Math.random() < 0.01 && height > -20) {
+					chunkGroup.add(createBoulder(worldX, height, worldZ))
 				}
 			}
 			geo.computeVertexNormals()
@@ -594,9 +594,7 @@
 		camera.position.set(0, 10, 0)
 		const waterGeo = new THREE.PlaneGeometry(4000, 4000)
 		const waterMat = new THREE.MeshLambertMaterial({
-			color: 0x001a33,
-			transparent: true,
-			opacity: 0.8,
+			color: 0x5b94b0,
 			side: THREE.DoubleSide,
 		})
 		const ocean = new THREE.Mesh(waterGeo, waterMat)
