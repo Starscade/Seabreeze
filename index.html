@@ -757,25 +757,39 @@
 
 		let currentTime = prevTime + startTimeOffset
 
-		// AUDIO SYSTEM
-		const audio = new Audio('ocean.ogg')
-		audio.loop = true
+		// AUDIO SYSTEM WITH LOW PASS FILTER
+		const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+		const audioEl = new Audio('ocean.ogg')
+		audioEl.loop = true
+		audioEl.crossOrigin = "anonymous"
+
+		const source = audioCtx.createMediaElementSource(audioEl)
+		const lowPassFilter = audioCtx.createBiquadFilter()
+		lowPassFilter.type = 'lowpass'
+		lowPassFilter.frequency.value = 22000 // Start fully open
+
+		source.connect(lowPassFilter)
+		lowPassFilter.connect(audioCtx.destination)
+
 		let audioStarted = false
 
 		function updateAudio() {
 			if (!audioStarted) return
 			const alt = camera.position.y
-			// Max volume at altitude -1 (water level), fades out as altitude increases
-			// Volume = 1.0 at alt <= -1, 0.0 at alt >= 50
 			const volume = Math.max(0, Math.min(1, 1 - (alt / 100)))
-			audio.volume = volume
+			audioEl.volume = volume
+
+			const isUnderwater = alt < -1
+			const targetFreq = isUnderwater ? 400 : 22000
+			lowPassFilter.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.1)
 		}
 
-		// Start audio on first user interaction
 		const startAudio = () => {
 			if (!audioStarted) {
-				audio.play().catch(() => {})
-				audioStarted = true
+				audioCtx.resume().then(() => {
+					audioEl.play().catch(() => {})
+					audioStarted = true
+				})
 			}
 			window.removeEventListener('mousedown', startAudio)
 			window.removeEventListener('touchstart', startAudio)
