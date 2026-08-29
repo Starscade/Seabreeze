@@ -324,9 +324,10 @@
 		scene.add(diveLight)
 		scene.add(diveLight.target)
 
-		const cloudMaterial = new THREE.MeshLambertMaterial({
-			color: 0xffffff,
-			transparent: false,
+		const cloudMaterial = new THREE.MeshBasicMaterial({
+			color: 0xeeeeff,
+			transparent: true,
+			opacity: 0.97,
 			depthWrite: true,
 		})
 
