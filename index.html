@@ -214,7 +214,7 @@
 		stars.material.fog = false
 		scene.add(stars)
 
-		// SUN SYSTEM - Now using a 2D Canvas-based Sprite for consistent look
+		// SUN SYSTEM
 		const sunCanvas = document.createElement('canvas')
 		sunCanvas.width = 256
 		sunCanvas.height = 256
@@ -259,7 +259,7 @@
 		sunGlow.scale.set(150, 150, 1)
 		scene.add(sunGlow)
 
-		// MOON SYSTEM - Now using a 2D Canvas-based Sprite for a clean boolean crescent
+		// MOON SYSTEM
 		const moonCanvas = document.createElement('canvas')
 		moonCanvas.width = 256
 		moonCanvas.height = 256
@@ -767,7 +767,7 @@
 
 		let currentTime = prevTime + startTimeOffset
 
-		// AUDIO SYSTEM WITH LOW PASS FILTER
+		// AUDIO SYSTEM
 		const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 		const audioEl = new Audio('ocean.ogg')
 		audioEl.loop = true
@@ -776,7 +776,7 @@
 		const source = audioCtx.createMediaElementSource(audioEl)
 		const lowPassFilter = audioCtx.createBiquadFilter()
 		lowPassFilter.type = 'lowpass'
-		lowPassFilter.frequency.value = 22000 // Start fully open
+		lowPassFilter.frequency.value = 22000
 
 		source.connect(lowPassFilter)
 		lowPassFilter.connect(audioCtx.destination)
@@ -807,12 +807,12 @@
 		window.addEventListener('mousedown', startAudio)
 		window.addEventListener('touchstart', startAudio)
 
-		// FIXED RAIN SYSTEM
+		// RAIN SYSTEM
 		const rainCount = 2500
 		const rainGeo = new THREE.BufferGeometry()
 		const rainPos = new Float32Array(rainCount * 3)
 		const rainVel = new Float32Array(rainCount)
-		const RAIN_BOUNDS = 60 // Size of the rain box around the camera
+		const RAIN_BOUNDS = 60
 
 		for (let i = 0; i < rainCount; i++) {
 			rainPos[i * 3] = (Math.random() - 0.5) * RAIN_BOUNDS * 2
@@ -853,7 +853,6 @@
 			sail.position.y = 2
 			group.add(sail)
 
-			// PORT LIGHT (Red) - Left side
 			const portLightGeo = new THREE.Mesh(
 				lightGeo,
 				new THREE.MeshBasicMaterial({ color: 0x00ff00 }),
@@ -864,7 +863,6 @@
 			portPoint.position.set(-1, 0.6, 0)
 			group.add(portPoint)
 
-			// STARBOARD LIGHT (Green) - Right side
 			const stbdLightGeo = new THREE.Mesh(
 				lightGeo,
 				new THREE.MeshBasicMaterial({ color: 0xff0000 }),
@@ -875,12 +873,10 @@
 			stbdPoint.position.set(1, 0.6, 0)
 			group.add(stbdPoint)
 
-			// Random start position in a circle around origin, far away
 			const angle = Math.random() * Math.PI * 2
 			const dist = 200 + Math.random() * 200
 			group.position.set(Math.cos(angle) * dist, -0.5, Math.sin(angle) * dist)
 
-			// Move towards center or across
 			const targetAngle = angle + Math.PI + (Math.random() - 0.5)
 			const direction = new THREE.Vector3(
 				Math.cos(targetAngle),
@@ -947,7 +943,7 @@
 		function spawnFlock() {
 			const flockSize = Math.floor(Math.random() * 10)
 			const centerX = (Math.random() - 0.5) * 400
-			const centerZ = 400 + Math.random() * 400 // Spawn south
+			const centerZ = 400 + Math.random() * 400
 			const centerY = 40 + Math.random() * 60
 
 			const flock = []
@@ -972,25 +968,17 @@
 
 			for (let i = birds.length - 1; i >= 0; i--) {
 				const flock = birds[i]
-				flock.centerZ -= flock.speed * delta // Migrate South to North (Z decreasing)
+				flock.centerZ -= flock.speed * delta
 
 				flock.members.forEach((bird) => {
-					bird.mesh.position.z = flock.centerZ + bird.offset.z -
-						(flock.centerZ - 400) * 0.1 // simplified relative movement
-					// Correcting: just move them all North
 					bird.mesh.position.z -= flock.speed * delta
-
-					// Wing flapping
 					const flap = Math.sin(time * 0.01 + bird.phase)
 					bird.wingL.rotation.z = flap * 0.8
 					bird.wingR.rotation.z = -flap * 0.8
-
-					// Subtle bobbing
 					bird.mesh.position.y = bird.offset.y +
 						Math.sin(time * 0.002 + bird.phase) * 2
 				})
 
-				// Remove if far North
 				if (flock.centerZ < -600) {
 					flock.members.forEach((b) => birdGroup.remove(b.mesh))
 					birds.splice(i, 1)
@@ -1039,7 +1027,6 @@
 
 		function updateFish(delta, time) {
 			if (camera.position.y > -1) {
-				// Clean up fish when going to surface
 				for (let i = fishs.length - 1; i >= 0; i--) {
 					scene.remove(fishs[i].mesh)
 					fishs.splice(i, 1)
@@ -1052,8 +1039,6 @@
 			for (let i = fishs.length - 1; i >= 0; i--) {
 				const f = fishs[i]
 				f.life -= delta
-
-				// Move in direction with slight wave
 				const move = f.dir.clone().multiplyScalar(f.speed * delta)
 				move.y += Math.sin(time * 0.005 + f.phase) * 0.01
 				f.mesh.position.add(move)
@@ -1071,42 +1056,30 @@
 		const COLOR_LERP_SPEED = 0.005
 		let isFirstFrame = true
 
-		// GAMEPAD SUPPORT
-		let gamepadIndex = null;
-		window.addEventListener("gamepadconnected", (e) => {
-			if (gamepadIndex === null) gamepadIndex = e.gamepad.index;
-		});
-		window.addEventListener("gamepaddisconnected", (e) => {
-			if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
-		});
+		let gamepadIndex = null
+		window.addEventListener('gamepadconnected', (e) => {
+			if (gamepadIndex === null) gamepadIndex = e.gamepad.index
+		})
+		window.addEventListener('gamepaddisconnected', (e) => {
+			if (gamepadIndex === e.gamepad.index) gamepadIndex = null
+		})
 
 		function pollGamepad() {
-			if (gamepadIndex === null) return;
-			const gp = navigator.getGamepads()[gamepadIndex];
-			if (!gp) return;
-
-			// Left Stick: Move
-			// axis 0: X (-1 to 1), axis 1: Y (-1 to 1)
-			joyX = Math.abs(gp.axes[0]) > 0.1 ? gp.axes[0] : 0;
-			joyY = Math.abs(gp.axes[1]) > 0.1 ? gp.axes[1] : 0;
-
-			// Right Stick: Look
-			// axis 2: X, axis 3: Y
+			if (gamepadIndex === null) return
+			const gp = navigator.getGamepads()[gamepadIndex]
+			if (!gp) return
+			joyX = Math.abs(gp.axes[0]) > 0.1 ? gp.axes[0] : 0
+			joyY = Math.abs(gp.axes[1]) > 0.1 ? gp.axes[1] : 0
 			if (Math.abs(gp.axes[2]) > 0.1 || Math.abs(gp.axes[3]) > 0.1) {
-				lookX = gp.axes[2];
-				lookY = gp.axes[3];
+				lookX = gp.axes[2]
+				lookY = gp.axes[3]
 			} else {
-				lookX = 0;
-				lookY = 0;
+				lookX = 0
+				lookY = 0
 			}
-
-			// Buttons
-			// Left Shoulder (LB) is typically button 4
-			moveDown = gp.buttons[4].pressed;
-			// Right Shoulder (RB) is typically button 5
-			moveUp = gp.buttons[5].pressed;
-			// Left Stick Button (L3) is typically button 10
-			isSprinting = gp.buttons[10].pressed;
+			moveDown = gp.buttons[4].pressed
+			moveUp = gp.buttons[5].pressed
+			isSprinting = gp.buttons[10].pressed
 		}
 
 		function animateFixed() {
@@ -1114,7 +1087,7 @@
 			const now = performance.now()
 			const delta = (now - prevTime) / 1000
 
-			pollGamepad();
+			pollGamepad()
 
 			const time = now + startTimeOffset
 			const cycleProgress = (time % CYCLE_DURATION) / CYCLE_DURATION
@@ -1189,8 +1162,6 @@
 					rainGrayValue,
 					rainGrayValue,
 				)
-
-				// Target for rain
 				let rainFogTarget = new THREE.Color().copy(targetHorizon).lerp(
 					rainColor,
 					0.7,
@@ -1200,14 +1171,11 @@
 					rainColor,
 					0.7,
 				)
-
 				currentFogColor.lerp(rainFogTarget, COLOR_LERP_SPEED)
 				currentSkyColor.lerp(rainSkyTarget, COLOR_LERP_SPEED)
 				currentHorizonColor.lerp(rainHorizonTarget, COLOR_LERP_SPEED)
 			} else {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
-
-				// Return to natural cycle colors
 				currentFogColor.lerp(targetHorizon, COLOR_LERP_SPEED)
 				currentSkyColor.lerp(targetSky, COLOR_LERP_SPEED)
 				currentHorizonColor.lerp(targetHorizon, COLOR_LERP_SPEED)
@@ -1217,13 +1185,10 @@
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizonColor)
 
 			const nightThreshold = 10 * Math.max(0, Math.min(1, -sunHeight))
-
 			starMat.uniforms.uOpacity.value = nightThreshold
 			moonMat.opacity = nightThreshold
-
 			sun.visible = sunHeight > -1
 			sunGlow.visible = sunHeight > -1
-
 			moonLight.intensity = THREE.MathUtils.lerp(
 				moonLight.intensity,
 				sunHeight < 0.1 ? 1.5 : 0,
@@ -1248,7 +1213,6 @@
 					underwaterDayColor,
 					dayIntensity,
 				)
-
 				scene.fog = new THREE.FogExp2(currentUnderwaterColor, 0.1)
 				renderer.setClearColor(currentUnderwaterColor)
 				rain.visible = false
@@ -1320,7 +1284,6 @@
 				new THREE.Vector3(-moonDist * 0.707, moonDist * 0.707, -moonDist * 0.707),
 			)
 
-			// FIXED RAIN ANIMATION
 			const rainPositions = rainGeo.attributes.position.array
 			for (let i = 0; i < rainCount; i++) {
 				rainPositions[i * 3 + 1] -= rainVel[i] * delta
@@ -1364,14 +1327,12 @@
 			elements.forEach((id) => {
 				const el = document.getElementById(id)
 				if (el) {
-					// Only hide if they were visible (touching) in the first place
-					const isTouch = ('ontouchstart' in window)
+					const isTouch = 'ontouchstart' in window
 					el.style.display = (isLocked || !isTouch) ? 'none' : 'block'
 				}
 			})
 		})
 
-		// INITIAL TOUCH DETECTION
 		if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 			document.getElementById('move-joy').style.display = 'block'
 			document.getElementById('look-joy').style.display = 'block'
