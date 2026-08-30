@@ -549,9 +549,9 @@
 				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE
 				let height = getTerrainHeight(worldX, worldZ)
 				vertices[i + 1] = height
-				
+
 				const c = new THREE.Color()
-				
+
 				// Gradient transitions for smoother terrain coloring
 				if (height > 20) {
 					const t = THREE.MathUtils.clamp(height, 0, 1)
@@ -587,6 +587,7 @@
 				vertexColors: true,
 				clippingPlanes: [terrainClippingPlane],
 			})
+
 			const mesh = new THREE.Mesh(geo, mat)
 			mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
 
