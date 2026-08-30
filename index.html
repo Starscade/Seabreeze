@@ -1053,6 +1053,12 @@
 			}
 		}
 
+		// --- FOG & SKY LERPING STATE ---
+		let currentFogColor = new THREE.Color(0x87CEEB);
+		let currentSkyColor = new THREE.Color(0x84c7e9);
+		let currentHorizonColor = new THREE.Color(0xb1d9ff);
+		const COLOR_LERP_SPEED = 0.005;
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
@@ -1088,25 +1094,25 @@
 			const sunsetSky = new THREE.Color(0x4b306d)
 			const sunsetHorizon = new THREE.Color(0xfa8072)
 
-			let currentSky = new THREE.Color()
-			let currentHorizon = new THREE.Color()
+			let targetSky = new THREE.Color()
+			let targetHorizon = new THREE.Color()
 
 			const sunlightTransitionThreshold = 0.2
 
 			if (sunHeight > sunlightTransitionThreshold) {
-				currentSky.copy(daySky);
-				currentHorizon.copy(dayHorizon);
+				targetSky.copy(daySky);
+				targetHorizon.copy(dayHorizon);
 			} else if (sunHeight < -(sunlightTransitionThreshold)) {
-				currentSky.copy(nightSky);
-				currentHorizon.copy(nightHorizon);
+				targetSky.copy(nightSky);
+				targetHorizon.copy(nightHorizon);
 			} else if (sunHeight >= 0) {
 				const t = sunHeight / sunlightTransitionThreshold;
-				currentSky.lerpColors(sunriseSky, daySky, t);
-				currentHorizon.lerpColors(sunriseHorizon, dayHorizon, t);
+				targetSky.lerpColors(sunriseSky, daySky, t);
+				targetHorizon.lerpColors(sunriseHorizon, dayHorizon, t);
 			} else {
 				const t = (sunHeight + sunlightTransitionThreshold) / sunlightTransitionThreshold;
-				currentSky.lerpColors(nightSky, sunriseSky, t);
-				currentHorizon.lerpColors(nightHorizon, sunriseHorizon, t);
+				targetSky.lerpColors(nightSky, sunriseSky, t);
+				targetHorizon.lerpColors(nightHorizon, sunriseHorizon, t);
 			}
 
 			rainTimer -= delta
@@ -1117,24 +1123,28 @@
 
 			if (isRaining) {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.3, 0.01)
-
-				// Gray shade based on time of day (sunHeight)
-				// Daytime rain is a lighter gray, nighttime rain is a darker gray
 				const rainGrayValue = 0.1 + (dayIntensity * 0.3)
-				const rainColor = new THREE.Color(
-					rainGrayValue,
-					rainGrayValue,
-					rainGrayValue,
-				)
+				const rainColor = new THREE.Color(rainGrayValue, rainGrayValue, rainGrayValue)
+				
+				// Target for rain
+				let rainFogTarget = new THREE.Color().copy(targetHorizon).lerp(rainColor, 0.7)
+				let rainSkyTarget = new THREE.Color().copy(targetSky).lerp(rainColor, 0.7)
+				let rainHorizonTarget = new THREE.Color().copy(targetHorizon).lerp(rainColor, 0.7)
 
-				currentSky.lerp(rainColor, 0.7)
-				currentHorizon.lerp(rainColor, 0.7)
+				currentFogColor.lerp(rainFogTarget, COLOR_LERP_SPEED)
+				currentSkyColor.lerp(rainSkyTarget, COLOR_LERP_SPEED)
+				currentHorizonColor.lerp(rainHorizonTarget, COLOR_LERP_SPEED)
 			} else {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
+				
+				// Return to natural cycle colors
+				currentFogColor.lerp(targetHorizon, COLOR_LERP_SPEED)
+				currentSkyColor.lerp(targetSky, COLOR_LERP_SPEED)
+				currentHorizonColor.lerp(targetHorizon, COLOR_LERP_SPEED)
 			}
 
-			skyMat.uniforms.uSkyColor.value.copy(currentSky)
-			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
+			skyMat.uniforms.uSkyColor.value.copy(currentSkyColor)
+			skyMat.uniforms.uHorizonColor.value.copy(currentHorizonColor)
 
 			const nightThreshold = 10 * Math.max(0, Math.min(1, -sunHeight))
 
@@ -1184,9 +1194,8 @@
 				terrainClippingPlane.constant = 1000
 				underwaterMaterial.uniforms.uUnderwater.value = 1.0
 			} else {
-				const fogColor = new THREE.Color().copy(currentHorizon)
-				scene.fog = new THREE.FogExp2(fogColor, 0.01)
-				renderer.setClearColor(fogColor)
+				scene.fog = new THREE.FogExp2(currentFogColor, 0.01)
+				renderer.setClearColor(currentFogColor)
 				rain.visible = true
 				sky.visible = true
 				stars.visible = true
