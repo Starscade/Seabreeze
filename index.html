@@ -255,10 +255,9 @@
 			map: glowTexture,
 			color: 0xfff5aa,
 			transparent: true,
-			blending: THREE.AdditiveBlending,
-			depthTest: true,
 		})
 		const sunGlow = new THREE.Sprite(glowMat)
+		sunGlow.material.fog = false
 		sunGlow.scale.set(150, 150, 1)
 		scene.add(sunGlow)
 
