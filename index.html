@@ -11,6 +11,11 @@
 			href="manifest.json"
 			rel="manifest"
 		>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Caacupe+One&display=swap"
+			rel="stylesheet">
 		<meta charset="UTF-8">
 		<meta
 			content="LightSkyBlue"
@@ -26,7 +31,8 @@
 			margin: 0;
 			overflow: hidden;
 			background: #87CEEB;
-			font-family: sans-serif;
+			font-family: 'Caacupe One', sans-serif;
+			font-size: 14pt;
 			touch-action: none;
 		}
 
@@ -73,19 +79,17 @@
 		}
 
 		#altimeter {
-			font-size: 14px;
 			opacity: 0.9;
 		}
 
 		#compass {
 			font-weight: bold;
-			font-size: 18px;
+			font-size: 2rem;
 			letter-spacing: 2px;
 			margin-bottom: 5px;
 		}
 
 		#game-clock {
-			font-size: 14px;
 			opacity: 0.9;
 		}
 
@@ -100,14 +104,13 @@
 
 		#hud-stats {
 			position: absolute;
-			top: 10px;
+			top: 1rem;
 			left: 50%;
 			transform: translateX(-50%);
 			color: white;
 			text-shadow: 1px 1px 2px black;
 			pointer-events: none;
 			text-align: center;
-			font-family: 'Courier New', Courier, monospace;
 		}
 
 		#look-joy {
