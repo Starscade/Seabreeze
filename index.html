@@ -603,13 +603,48 @@
 		}
 
 		camera.position.set(0, 10, 0)
-		const waterGeo = new THREE.PlaneGeometry(1000, 1000)
-		const waterMat = new THREE.MeshLambertMaterial({
-			color: 0x5b94b0,
+
+		// OCEAN SURFACE WITH FOG LOGIC
+		const oceanGeo = new THREE.PlaneGeometry(2000, 2000, 128, 128)
+		oceanGeo.rotateX(-Math.PI / 2)
+		const oceanMat = new THREE.ShaderMaterial({
+			uniforms: {
+				uTime: { value: 0 },
+				uColor: { value: new THREE.Color(0x5b94b0) },
+				uFogColor: { value: new THREE.Color(0x87ceeb) },
+				uFogDensity: { value: 0.02 },
+			},
+			vertexShader: `
+				uniform float uTime;
+				varying float vHeight;
+				varying vec3 vWorldPosition;
+				void main() {
+					vec3 pos = position;
+					float h = sin(pos.x * 0.05 + uTime) * 0.4 + cos(pos.z * 0.07 + uTime * 1.2) * 0.4;
+					pos.y += h;
+					vHeight = h;
+					vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+					vWorldPosition = worldPos.xyz;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+				}
+			`,
+			fragmentShader: `
+				uniform vec3 uColor;
+				uniform vec3 uFogColor;
+				uniform float uFogDensity;
+				varying float vHeight;
+				varying vec3 vWorldPosition;
+				void main() {
+					float mixVal = vHeight * 0.2 + 0.5;
+					vec3 baseColor = uColor * mixVal;
+					float dist = distance(vWorldPosition, cameraPosition);
+					float fogFactor = 1.0 - exp(-dist * uFogDensity);
+					gl_FragColor = vec4(mix(baseColor, uFogColor, fogFactor), 1.0);
+				}
+			`,
 			side: THREE.DoubleSide,
 		})
-		const ocean = new THREE.Mesh(waterGeo, waterMat)
-		ocean.rotation.x = -Math.PI / 2
+		const ocean = new THREE.Mesh(oceanGeo, oceanMat)
 		ocean.position.y = -1
 		scene.add(ocean)
 
@@ -1101,8 +1136,10 @@
 			sun.position.copy(sunPos)
 			sunGlow.position.copy(sunPos)
 			directionalLight.position.copy(sun.position)
+
 			ocean.position.x = camera.position.x
 			ocean.position.z = camera.position.z
+			oceanMat.uniforms.uTime.value = time * 0.001
 
 			const sunHeight = Math.sin(angle)
 			const dayIntensity = Math.max(0, sunHeight)
@@ -1215,6 +1252,10 @@
 				)
 				scene.fog = new THREE.FogExp2(currentUnderwaterColor, 0.1)
 				renderer.setClearColor(currentUnderwaterColor)
+
+				oceanMat.uniforms.uFogColor.value.copy(currentUnderwaterColor)
+				oceanMat.uniforms.uFogDensity.value = 0.1
+
 				rain.visible = false
 				sky.visible = false
 				stars.visible = false
@@ -1230,6 +1271,10 @@
 			} else {
 				scene.fog = new THREE.FogExp2(currentFogColor, 0.01)
 				renderer.setClearColor(currentFogColor)
+
+				oceanMat.uniforms.uFogColor.value.copy(currentFogColor)
+				oceanMat.uniforms.uFogDensity.value = 0.02
+
 				rain.visible = true
 				sky.visible = true
 				stars.visible = true
