@@ -125,8 +125,8 @@
 	<body id="main-body">
 		<div id="hud-stats">
 			<div id="compass">N</div>
-			<div id="altimeter">ALT: 0m</div>
 			<div id="game-clock">00:00</div>
+			<div id="altimeter">0m</div>
 		</div>
 
 		<div id="move-joy" class="joystick-container">
@@ -759,7 +759,7 @@
 		const clockEl = document.getElementById('game-clock')
 
 		function updateHUD(time) {
-			altEl.textContent = `ALT: ${Math.round(camera.position.y)}m`
+			altEl.textContent = `${Math.round(camera.position.y)}m`
 			const degrees = (yaw * 180 / Math.PI) % 360
 			const normalizedDeg = (360 - degrees) % 360
 
