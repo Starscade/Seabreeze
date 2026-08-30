@@ -488,8 +488,8 @@
 
 		const terrainClippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1)
 
-		const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
-		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
+		const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 })
+		const leafMat = new THREE.MeshToonMaterial({ color: 0x228B22 })
 		const boulderMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
 
 		// HELPER FOR CONSISTENT HEIGHT CALCULATION
@@ -549,12 +549,23 @@
 				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE
 				let height = getTerrainHeight(worldX, worldZ)
 				vertices[i + 1] = height
+				
 				const c = new THREE.Color()
-				if (height > 20) c.copy(colorSnow)
-				else if (height > 2) c.copy(colorGrass)
-				else if (height > -15) c.copy(colorSand)
-				else if (height > -20) c.copy(colorClay)
-				else c.copy(colorRock)
+				
+				// Gradient transitions for smoother terrain coloring
+				if (height > 20) {
+					const t = THREE.MathUtils.clamp(height, 0, 1)
+					c.lerpColors(colorGrass, colorSnow, t)
+				} else if (height > 0) {
+					const t = THREE.MathUtils.clamp(height / 3, 0, 1)
+					c.lerpColors(colorSand, colorGrass, t)
+				} else if (height > -10) {
+					const t = THREE.MathUtils.clamp((height + 10) / 10, 0, 1)
+					c.lerpColors(colorClay, colorSand, t)
+				} else {
+					const t = THREE.MathUtils.clamp((height + 20) / 10, 0, 1)
+					c.lerpColors(colorRock, colorClay, t)
+				}
 				colors.push(c.r, c.g, c.b)
 
 				if (Math.random() < 0.1 && height < 15) {
@@ -574,7 +585,6 @@
 			geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
 			const mat = new THREE.MeshLambertMaterial({
 				vertexColors: true,
-				side: THREE.DoubleSide,
 				clippingPlanes: [terrainClippingPlane],
 			})
 			const mesh = new THREE.Mesh(geo, mat)
