@@ -502,12 +502,12 @@
 
 		function createTree(x, y, z) {
 			const group = new THREE.Group()
-			const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 5, 8)
+			const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 6, 3)
 			const trunk = new THREE.Mesh(trunkGeo, trunkMat)
 			trunk.position.y = 2.5
 			group.add(trunk)
 
-			const leafGeo = new THREE.SphereGeometry(2, 6, 4)
+			const leafGeo = new THREE.ConeGeometry(2, 7, 3)
 			const leaf = new THREE.Mesh(leafGeo, leafMat)
 			leaf.scale.set(1.2, 0.8, 1.2)
 			leaf.position.set(0, 6, 0)
