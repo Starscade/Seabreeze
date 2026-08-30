@@ -517,7 +517,11 @@
 		}
 
 		function createBoulder(x, y, z) {
-			const boulderGeo = new THREE.SphereGeometry(Math.max(0.3, 2 * Math.random()), 6, 3)
+			const boulderGeo = new THREE.SphereGeometry(
+				Math.max(0.3, 2 * Math.random()),
+				6,
+				3,
+			)
 			const boulder = new THREE.Mesh(boulderGeo, boulderMat)
 			boulder.position.set(x, y + 0.15, z)
 			boulder.scale.set(1, 0.7, 1)
@@ -606,39 +610,75 @@
 
 		camera.position.set(0, 10, 0)
 
-		// OCEAN SURFACE WITH FOG LOGIC
-		const oceanGeo = new THREE.PlaneGeometry(2000, 2000, 128, 128)
+		// OCEAN SURFACE WITH DEPTH COLORING
+		const oceanGeo = new THREE.PlaneGeometry(1000, 1000, 768, 768)
 		oceanGeo.rotateX(-Math.PI / 2)
 		const oceanMat = new THREE.ShaderMaterial({
 			uniforms: {
 				uTime: { value: 0 },
-				uColor: { value: new THREE.Color(0x5b94b0) },
 				uFogColor: { value: new THREE.Color(0x87ceeb) },
 				uFogDensity: { value: 0.02 },
+				uSeed: { value: seedOffset },
 			},
 			vertexShader: `
 				uniform float uTime;
+				uniform float uSeed;
 				varying float vHeight;
 				varying vec3 vWorldPosition;
+				varying float vDepth;
+
+				float getTerrainHeight(float x, float z) {
+					float seed = uSeed;
+					return (
+						sin(x * 0.05 + seed) * cos(z * 0.05 + seed) * -10.0 +
+						sin(x * 0.2 + seed * 1.1) * cos(z * 0.2 + seed * 1.2) * -5.0 +
+						sin(x * 0.01 + seed * 0.5) * sin(z * 0.01 + seed * 0.8) * 30.0 +
+						cos(x * 0.1 + z * 0.01 + seed) * -8.0
+					);
+				}
+
 				void main() {
 					vec3 pos = position;
 					float h = sin(pos.x * 0.05 + uTime) * 0.4 + cos(pos.z * 0.07 + uTime * 1.2) * 0.4;
 					pos.y += h;
 					vHeight = h;
+					
 					vec4 worldPos = modelMatrix * vec4(pos, 1.0);
 					vWorldPosition = worldPos.xyz;
+					
+					float terrainH = getTerrainHeight(vWorldPosition.x, vWorldPosition.z);
+					float depthMult = terrainH < 0.0 ? 2.5 : 1.0;
+					float finalTerrainH = (terrainH * depthMult) - 15.0;
+					vDepth = vWorldPosition.y - finalTerrainH;
+
 					gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 				}
 			`,
 			fragmentShader: `
-				uniform vec3 uColor;
 				uniform vec3 uFogColor;
 				uniform float uFogDensity;
 				varying float vHeight;
 				varying vec3 vWorldPosition;
+				varying float vDepth;
+
 				void main() {
 					float mixVal = vHeight * 0.2 + 0.5;
-					vec3 baseColor = uColor * mixVal;
+					
+					vec3 colorFoam = vec3(1.0, 0.9, 0.5);
+					vec3 colorShallow = vec3(0.5, 1.0, 0.7);
+					vec3 colorBlue = vec3(0.1, 0.4, 0.7);
+					vec3 colorNavy = vec3(0.02, 0.1, 0.3);
+					
+					vec3 baseColor;
+					if (vDepth < 1.0) {
+						baseColor = mix(colorFoam, colorShallow, clamp(vDepth, 0.0, 1.0));
+					} else if (vDepth < 5.0) {
+						baseColor = mix(colorShallow, colorBlue, clamp((vDepth - 1.0) / 4.0, 0.0, 1.0));
+					} else {
+						baseColor = mix(colorBlue, colorNavy, clamp((vDepth - 5.0) / 15.0, 0.0, 1.0));
+					}
+					
+					baseColor *= mixVal;
 					float dist = distance(vWorldPosition, cameraPosition);
 					float fogFactor = 1.0 - exp(-dist * uFogDensity);
 					gl_FragColor = vec4(mix(baseColor, uFogColor, fogFactor), 1.0);
