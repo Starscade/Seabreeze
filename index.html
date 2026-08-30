@@ -58,6 +58,7 @@
 			border-radius: 50%;
 			touch-action: none;
 			border: 2px solid rgba(255,255,255,0.3);
+			display: none; /* Hidden by default */
 		}
 
 		.knob {
@@ -92,7 +93,7 @@
 			position: absolute;
 			right: 40px;
 			bottom: 180px;
-			display: flex;
+			display: none; /* Hidden by default */
 			flex-direction: column;
 			gap: 10px;
 		}
@@ -1318,9 +1319,21 @@
 			const elements = ['move-joy', 'look-joy', 'height-controls']
 			elements.forEach((id) => {
 				const el = document.getElementById(id)
-				if (el) el.style.display = isLocked ? 'none' : 'block'
+				if (el) {
+					// Only hide if they were visible (touching) in the first place
+					const isTouch = ('ontouchstart' in window)
+					el.style.display = (isLocked || !isTouch) ? 'none' : 'block'
+				}
 			})
 		})
+
+		// INITIAL TOUCH DETECTION
+		if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+			document.getElementById('move-joy').style.display = 'block'
+			document.getElementById('look-joy').style.display = 'block'
+			document.getElementById('height-controls').style.display = 'flex'
+		}
+
 		navigator.serviceWorker.register('work.js')
 		</script>
 	</body>
