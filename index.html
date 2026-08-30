@@ -490,6 +490,13 @@
 		const leafMat = new THREE.MeshLambertMaterial({ color: 0x228B22 })
 		const boulderMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
 
+		// HELPER FOR CONSISTENT HEIGHT CALCULATION
+		function getTerrainHeight(x, z) {
+			const rawHeight = simplexNoise(x, z, seedOffset)
+			const depthMultiplier = rawHeight < 0 ? 2.5 : 1.0
+			return (rawHeight * depthMultiplier) - 15
+		}
+
 		function createTree(x, y, z) {
 			const group = new THREE.Group()
 			const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 5, 8)
@@ -530,7 +537,7 @@
 			for (let i = 0; i < vertices.length; i += 3) {
 				const worldX = vertices[i] + cx * CHUNK_SIZE
 				const worldZ = vertices[i + 2] + cz * CHUNK_SIZE
-				let height = simplexNoise(worldX, worldZ, seedOffset) - 15
+				let height = getTerrainHeight(worldX, worldZ)
 				vertices[i + 1] = height
 				const c = new THREE.Color()
 				if (height > 20) c.copy(colorSnow)
@@ -1300,9 +1307,7 @@
 				velocity.clone().multiplyScalar(delta),
 			)
 
-			const terrainCollisionHeight = 1 +
-				simplexNoise(nextPos.x, nextPos.z, seedOffset) - 15
-
+			const terrainCollisionHeight = 1 + getTerrainHeight(nextPos.x, nextPos.z)
 			if (nextPos.y < terrainCollisionHeight) {
 				nextPos.y = terrainCollisionHeight
 				velocity.set(0, 0, 0)
