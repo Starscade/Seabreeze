@@ -1058,17 +1058,56 @@
 			}
 		}
 
-		// --- FOG & SKY LERPING STATE ---
 		let currentFogColor = new THREE.Color()
 		let currentSkyColor = new THREE.Color()
 		let currentHorizonColor = new THREE.Color()
 		const COLOR_LERP_SPEED = 0.005
 		let isFirstFrame = true
 
+		// GAMEPAD SUPPORT
+		let gamepadIndex = null;
+		window.addEventListener("gamepadconnected", (e) => {
+			if (gamepadIndex === null) gamepadIndex = e.gamepad.index;
+		});
+		window.addEventListener("gamepaddisconnected", (e) => {
+			if (gamepadIndex === e.gamepad.index) gamepadIndex = null;
+		});
+
+		function pollGamepad() {
+			if (gamepadIndex === null) return;
+			const gp = navigator.getGamepads()[gamepadIndex];
+			if (!gp) return;
+
+			// Left Stick: Move
+			// axis 0: X (-1 to 1), axis 1: Y (-1 to 1)
+			joyX = Math.abs(gp.axes[0]) > 0.1 ? gp.axes[0] : 0;
+			joyY = Math.abs(gp.axes[1]) > 0.1 ? gp.axes[1] : 0;
+
+			// Right Stick: Look
+			// axis 2: X, axis 3: Y
+			if (Math.abs(gp.axes[2]) > 0.1 || Math.abs(gp.axes[3]) > 0.1) {
+				lookX = gp.axes[2];
+				lookY = gp.axes[3];
+			} else {
+				lookX = 0;
+				lookY = 0;
+			}
+
+			// Buttons
+			// Left Shoulder (LB) is typically button 4
+			moveDown = gp.buttons[4].pressed;
+			// Right Shoulder (RB) is typically button 5
+			moveUp = gp.buttons[5].pressed;
+			// Left Stick Button (L3) is typically button 10
+			isSprinting = gp.buttons[10].pressed;
+		}
+
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
 			const now = performance.now()
 			const delta = (now - prevTime) / 1000
+
+			pollGamepad();
 
 			const time = now + startTimeOffset
 			const cycleProgress = (time % CYCLE_DURATION) / CYCLE_DURATION
