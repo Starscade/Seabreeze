@@ -279,17 +279,17 @@
 		const moonMat = new THREE.SpriteMaterial({
 			map: moonTexture,
 			transparent: true,
+			opacity: 0,
 			depthTest: true,
 		})
 		const moonCrescent = new THREE.Sprite(moonMat)
-		moonCrescent.scale.set(80, 80, 1)
+		moonCrescent.scale.set(50, 50, 1)
 		const moonDist = 300
 		moonCrescent.position.set(
 			-moonDist * 0.707,
 			moonDist * 0.707,
 			-moonDist * 0.707,
 		)
-		moonCrescent.visible = false
 		moonCrescent.material.fog = false
 		scene.add(moonCrescent)
 
@@ -1136,11 +1136,14 @@
 			skyMat.uniforms.uSkyColor.value.copy(currentSky)
 			skyMat.uniforms.uHorizonColor.value.copy(currentHorizon)
 
-			starMat.uniforms.uOpacity.value = Math.max(0, Math.min(1, -sunHeight))
-			sun.visible = sunHeight > -0.1
-			sunGlow.visible = sunHeight > -0.1
+			const nightThreshold = 10 * Math.max(0, Math.min(1, -sunHeight))
 
-			moonCrescent.visible = sunHeight < 0.1
+			starMat.uniforms.uOpacity.value = nightThreshold
+			moonMat.opacity = nightThreshold
+
+			sun.visible = sunHeight > -1
+			sunGlow.visible = sunHeight > -1
+
 			moonLight.intensity = THREE.MathUtils.lerp(
 				moonLight.intensity,
 				sunHeight < 0.1 ? 1.5 : 0,
