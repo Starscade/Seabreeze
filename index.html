@@ -518,9 +518,9 @@
 		}
 
 		function createBoulder(x, y, z) {
-			const boulderGeo = new THREE.SphereGeometry(0.8, 6, 3)
+			const boulderGeo = new THREE.SphereGeometry(Math.max(0.3, 2 * Math.random()), 6, 3)
 			const boulder = new THREE.Mesh(boulderGeo, boulderMat)
-			boulder.position.set(x, y + 0.4, z)
+			boulder.position.set(x, y + 0.15, z)
 			boulder.scale.set(1, 0.7, 1)
 			return boulder
 		}
