@@ -494,13 +494,12 @@
 
 		// HELPER FOR CONSISTENT HEIGHT CALCULATION
 		function getTerrainHeight(x, z) {
-			const rawHeight = simplexNoise(x, z, seedOffset);
-			if (rawHeight < 0) {
-				return (rawHeight * 0.5) - 30;
-			} else if (rawHeight < -15) {
-				return (rawHeight * 1.0) - 50;
+			const rawHeight = simplexNoise(x, z, seedOffset)
+			if (rawHeight < 0.0) {
+				const depthFactor = Math.pow(Math.abs(rawHeight), 0.9)
+				return -depthFactor * 2.0 - 10.0
 			} else {
-				return (rawHeight * 1.0) - 15;
+				return rawHeight * 0.8 - 10
 			}
 		}
 
@@ -641,9 +640,9 @@
 						cos(x * 0.1 + z * 0.01 + seed) * -8.0
 					);
 					if (rawHeight < 0.0) {
-						return (rawHeight * 0.3) - 15.0;
+						return -pow(abs(rawHeight), 0.9) * 2.0 - 10.0;
 					} else {
-						return (rawHeight * 1.0) - 15.0;
+						return rawHeight * 0.8 - 10.0;
 					}
 				}
 
