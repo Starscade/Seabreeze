@@ -164,7 +164,7 @@
 		const skyMat = new THREE.ShaderMaterial({
 			uniforms: {
 				uSkyColor: { value: new THREE.Color(0x84c7e9) },
-				uHorizonColor: { value: new THREE.Color(0xb1d9ff) },
+				uHorizonColor: { value: new THREE.Color(0x87ceeb) },
 			},
 			vertexShader,
 			fragmentShader,
@@ -763,7 +763,7 @@
 		const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 		const audioEl = new Audio('ocean.ogg')
 		audioEl.loop = true
-		audioEl.crossOrigin = "anonymous"
+		audioEl.crossOrigin = 'anonymous'
 
 		const source = audioCtx.createMediaElementSource(audioEl)
 		const lowPassFilter = audioCtx.createBiquadFilter()
@@ -1003,7 +1003,11 @@
 			const centerX = camera.position.x + (Math.random() - 0.5) * 20
 			const centerY = camera.position.y + (Math.random() - 0.5) * 10
 			const centerZ = camera.position.z + (Math.random() - 0.5) * 20
-			const dir = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize()
+			const dir = new THREE.Vector3(
+				Math.random() - 0.5,
+				Math.random() - 0.5,
+				Math.random() - 0.5,
+			).normalize()
 
 			for (let i = 0; i < schoolSize; i++) {
 				const fish = new THREE.Mesh(fishGeo, color)
@@ -1011,7 +1015,7 @@
 				fish.position.set(
 					centerX + (Math.random() - 0.5) * 2,
 					centerY + (Math.random() - 0.5) * 2,
-					centerZ + (Math.random() - 0.5) * 2
+					centerZ + (Math.random() - 0.5) * 2,
 				)
 				fish.lookAt(fish.position.clone().add(dir))
 				scene.add(fish)
@@ -1020,7 +1024,7 @@
 					dir: dir.clone(),
 					phase: Math.random() * Math.PI * 2,
 					speed: 1 + Math.random() * 2,
-					life: 10 + Math.random() * 10
+					life: 10 + Math.random() * 10,
 				})
 			}
 		}
@@ -1040,12 +1044,12 @@
 			for (let i = fishs.length - 1; i >= 0; i--) {
 				const f = fishs[i]
 				f.life -= delta
-				
+
 				// Move in direction with slight wave
 				const move = f.dir.clone().multiplyScalar(f.speed * delta)
 				move.y += Math.sin(time * 0.005 + f.phase) * 0.01
 				f.mesh.position.add(move)
-				
+
 				if (f.life <= 0 || f.mesh.position.distanceTo(camera.position) > 50) {
 					scene.remove(f.mesh)
 					fishs.splice(i, 1)
@@ -1054,10 +1058,11 @@
 		}
 
 		// --- FOG & SKY LERPING STATE ---
-		let currentFogColor = new THREE.Color(0x87CEEB);
-		let currentSkyColor = new THREE.Color(0x84c7e9);
-		let currentHorizonColor = new THREE.Color(0xb1d9ff);
-		const COLOR_LERP_SPEED = 0.005;
+		let currentFogColor = new THREE.Color()
+		let currentSkyColor = new THREE.Color()
+		let currentHorizonColor = new THREE.Color()
+		const COLOR_LERP_SPEED = 0.005
+		let isFirstFrame = true
 
 		function animateFixed() {
 			requestAnimationFrame(animateFixed)
@@ -1100,19 +1105,27 @@
 			const sunlightTransitionThreshold = 0.2
 
 			if (sunHeight > sunlightTransitionThreshold) {
-				targetSky.copy(daySky);
-				targetHorizon.copy(dayHorizon);
-			} else if (sunHeight < -(sunlightTransitionThreshold)) {
-				targetSky.copy(nightSky);
-				targetHorizon.copy(nightHorizon);
+				targetSky.copy(daySky)
+				targetHorizon.copy(dayHorizon)
+			} else if (sunHeight < -sunlightTransitionThreshold) {
+				targetSky.copy(nightSky)
+				targetHorizon.copy(nightHorizon)
 			} else if (sunHeight >= 0) {
-				const t = sunHeight / sunlightTransitionThreshold;
-				targetSky.lerpColors(sunriseSky, daySky, t);
-				targetHorizon.lerpColors(sunriseHorizon, dayHorizon, t);
+				const t = sunHeight / sunlightTransitionThreshold
+				targetSky.lerpColors(sunriseSky, daySky, t)
+				targetHorizon.lerpColors(sunriseHorizon, dayHorizon, t)
 			} else {
-				const t = (sunHeight + sunlightTransitionThreshold) / sunlightTransitionThreshold;
-				targetSky.lerpColors(nightSky, sunriseSky, t);
-				targetHorizon.lerpColors(nightHorizon, sunriseHorizon, t);
+				const t = (sunHeight + sunlightTransitionThreshold) /
+					sunlightTransitionThreshold
+				targetSky.lerpColors(nightSky, sunriseSky, t)
+				targetHorizon.lerpColors(nightHorizon, sunriseHorizon, t)
+			}
+
+			if (isFirstFrame) {
+				currentFogColor.copy(targetHorizon)
+				currentSkyColor.copy(targetSky)
+				currentHorizonColor.copy(targetHorizon)
+				isFirstFrame = false
 			}
 
 			rainTimer -= delta
@@ -1124,19 +1137,29 @@
 			if (isRaining) {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0.3, 0.01)
 				const rainGrayValue = 0.1 + (dayIntensity * 0.3)
-				const rainColor = new THREE.Color(rainGrayValue, rainGrayValue, rainGrayValue)
-				
+				const rainColor = new THREE.Color(
+					rainGrayValue,
+					rainGrayValue,
+					rainGrayValue,
+				)
+
 				// Target for rain
-				let rainFogTarget = new THREE.Color().copy(targetHorizon).lerp(rainColor, 0.7)
+				let rainFogTarget = new THREE.Color().copy(targetHorizon).lerp(
+					rainColor,
+					0.7,
+				)
 				let rainSkyTarget = new THREE.Color().copy(targetSky).lerp(rainColor, 0.7)
-				let rainHorizonTarget = new THREE.Color().copy(targetHorizon).lerp(rainColor, 0.7)
+				let rainHorizonTarget = new THREE.Color().copy(targetHorizon).lerp(
+					rainColor,
+					0.7,
+				)
 
 				currentFogColor.lerp(rainFogTarget, COLOR_LERP_SPEED)
 				currentSkyColor.lerp(rainSkyTarget, COLOR_LERP_SPEED)
 				currentHorizonColor.lerp(rainHorizonTarget, COLOR_LERP_SPEED)
 			} else {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
-				
+
 				// Return to natural cycle colors
 				currentFogColor.lerp(targetHorizon, COLOR_LERP_SPEED)
 				currentSkyColor.lerp(targetSky, COLOR_LERP_SPEED)
