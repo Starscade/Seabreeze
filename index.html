@@ -494,9 +494,14 @@
 
 		// HELPER FOR CONSISTENT HEIGHT CALCULATION
 		function getTerrainHeight(x, z) {
-			const rawHeight = simplexNoise(x, z, seedOffset)
-			const depthMultiplier = rawHeight < 0 ? 2.5 : 1.0
-			return (rawHeight * depthMultiplier) - 15
+			const rawHeight = simplexNoise(x, z, seedOffset);
+			if (rawHeight < 0) {
+				return (rawHeight * 0.5) - 30;
+			} else if (rawHeight < -15) {
+				return (rawHeight * 1.0) - 50;
+			} else {
+				return (rawHeight * 1.0) - 15;
+			}
 		}
 
 		function createTree(x, y, z) {
@@ -629,12 +634,17 @@
 
 				float getTerrainHeight(float x, float z) {
 					float seed = uSeed;
-					return (
+					float rawHeight = (
 						sin(x * 0.05 + seed) * cos(z * 0.05 + seed) * -10.0 +
 						sin(x * 0.2 + seed * 1.1) * cos(z * 0.2 + seed * 1.2) * -5.0 +
 						sin(x * 0.01 + seed * 0.5) * sin(z * 0.01 + seed * 0.8) * 30.0 +
 						cos(x * 0.1 + z * 0.01 + seed) * -8.0
 					);
+					if (rawHeight < 0.0) {
+						return (rawHeight * 0.3) - 15.0;
+					} else {
+						return (rawHeight * 1.0) - 15.0;
+					}
 				}
 
 				void main() {
@@ -646,9 +656,7 @@
 					vec4 worldPos = modelMatrix * vec4(pos, 1.0);
 					vWorldPosition = worldPos.xyz;
 					
-					float terrainH = getTerrainHeight(vWorldPosition.x, vWorldPosition.z);
-					float depthMult = terrainH < 0.0 ? 2.5 : 1.0;
-					float finalTerrainH = (terrainH * depthMult) - 15.0;
+					float finalTerrainH = getTerrainHeight(vWorldPosition.x, vWorldPosition.z);
 					vDepth = vWorldPosition.y - finalTerrainH;
 
 					gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
