@@ -115,9 +115,24 @@
 		#move-joy {
 			left: 40px;
 		}
+
+		#intro-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			background: black;
+			pointer-events: none;
+			z-index: 9999;
+			mask-image: radial-gradient(circle, transparent 0%, black 0%);
+			-webkit-mask-image: radial-gradient(circle, transparent 0%, black 0%);
+			transition: opacity 1s ease-out;
+		}
 		</style>
 	</head>
 	<body id="main-body">
+		<div id="intro-overlay"></div>
 		<div id="hud-stats">
 			<div id="compass">N</div>
 			<div id="game-clock">00:00</div>
@@ -1294,6 +1309,36 @@
 			document.getElementById('height-controls').style.display = 'flex'
 		}
 		navigator.serviceWorker.register('work.js')
+
+		// START SEQUENCE
+		window.addEventListener('load', () => {
+			const overlay = document.getElementById('intro-overlay')
+			let radius = 0
+			const duration = 2000
+			const start = performance.now()
+
+			function expand() {
+				const elapsed = performance.now() - start
+				const progress = Math.min(elapsed / duration, 1)
+
+				// Easing: outward expansion
+				const easedProgress = 1 - Math.pow(1 - progress, 3)
+				radius = easedProgress * 150 // 150% to ensure corners are cleared
+
+				overlay.style.webkitMaskImage =
+					`radial-gradient(circle, transparent ${radius}%, black ${radius + 0.1}%)`
+				overlay.style.maskImage =
+					`radial-gradient(circle, transparent ${radius}%, black ${radius + 0.1}%)`
+
+				if (progress < 1) {
+					requestAnimationFrame(expand)
+				} else {
+					overlay.style.opacity = '0'
+					setTimeout(() => overlay.remove(), 1000)
+				}
+			}
+			expand()
+		})
 		</script>
 	</body>
 </html>
