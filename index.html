@@ -1024,8 +1024,21 @@
 
 			const sunHeight = Math.sin(angle)
 			const dayIntensity = Math.max(0, sunHeight)
-			ambientLight.intensity = 0.2 + dayIntensity * 1.8
-			directionalLight.intensity = dayIntensity * 2.0
+			
+			const sunColor = new THREE.Color(0xfff5aa);
+			const moonColor = new THREE.Color(0xccccff);
+			const lightColor = new THREE.Color();
+			if (sunHeight > 0) {
+				lightColor.copy(sunColor);
+			} else {
+				lightColor.copy(moonColor);
+			}
+			directionalLight.color.copy(lightColor);
+
+			const nightIntensity = Math.max(0, -sunHeight);
+			ambientLight.color.copy(currentHorizonColor)
+			ambientLight.intensity = 2 + dayIntensity
+			directionalLight.intensity = (3.0 * dayIntensity) + (1.5 * nightIntensity);
 
 			const nightSky = new THREE.Color(0x0a0230),
 				nightHorizon = new THREE.Color(0x063768),
@@ -1036,7 +1049,7 @@
 				sunsetSky = new THREE.Color(0x4b306d),
 				sunsetHorizon = new THREE.Color(0xfa8072)
 			let targetSky = new THREE.Color(), targetHorizon = new THREE.Color()
-			const threshold = 0.2
+			const threshold = 0.3
 
 			if (sunHeight > threshold) {
 				targetSky.copy(daySky)
