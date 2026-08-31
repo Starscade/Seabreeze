@@ -673,7 +673,8 @@
 			moveRight = false,
 			moveUp = false,
 			moveDown = false,
-			isSprinting = false
+			isSprinting = false,
+			freeFlight = false
 		let joyX = 0, joyY = 0, lookX = 0, lookY = 0
 		const velocity = new THREE.Vector3()
 
@@ -685,6 +686,10 @@
 			if (e.code === 'KeyE') moveUp = true
 			if (e.code === 'KeyQ') moveDown = true
 			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
+			if (e.ctrlKey && e.code === 'Tab') {
+				e.preventDefault()
+				freeFlight = !freeFlight
+			}
 		})
 		document.addEventListener('keyup', (e) => {
 			if (e.code === 'KeyW') moveForward = false
@@ -1024,21 +1029,21 @@
 
 			const sunHeight = Math.sin(angle)
 			const dayIntensity = Math.max(0, sunHeight)
-			
-			const sunColor = new THREE.Color(0xfff5aa);
-			const moonColor = new THREE.Color(0xccccff);
-			const lightColor = new THREE.Color();
-			if (sunHeight > 0) {
-				lightColor.copy(sunColor);
-			} else {
-				lightColor.copy(moonColor);
-			}
-			directionalLight.color.copy(lightColor);
 
-			const nightIntensity = Math.max(0, -sunHeight);
+			const sunColor = new THREE.Color(0xfff5aa)
+			const moonColor = new THREE.Color(0xccccff)
+			const lightColor = new THREE.Color()
+			if (sunHeight > 0) {
+				lightColor.copy(sunColor)
+			} else {
+				lightColor.copy(moonColor)
+			}
+			directionalLight.color.copy(lightColor)
+
+			const nightIntensity = Math.max(0, -sunHeight)
 			ambientLight.color.copy(currentHorizonColor)
 			ambientLight.intensity = 2 + dayIntensity
-			directionalLight.intensity = (3.0 * dayIntensity) + (1.5 * nightIntensity);
+			directionalLight.intensity = (3.0 * dayIntensity) + (1.5 * nightIntensity)
 
 			const nightSky = new THREE.Color(0x0a0230),
 				nightHorizon = new THREE.Color(0x063768),
@@ -1174,13 +1179,26 @@
 			}
 
 			underwaterMaterial.uniforms.uTime.value = time * 0.001
-			velocity.multiplyScalar(1 - 10.0 * delta)
+
+			// PHYSICS CORRECTED:
+			// 1. Separate Drag: Horizontal drag stays, Vertical drag removed so gravity can accumulate.
+			const drag = 1 - 15.0 * delta
+			velocity.x *= drag
+			velocity.z *= drag
 
 			const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
 			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
+
+			if (!freeFlight) {
+				forward.y = 0
+				right.y = 0
+				forward.normalize()
+				right.normalize()
+			}
+
 			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY
 			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX
-			const currentSpeed = 80 * (isSprinting ? 4 : 1)
+			const currentSpeed = 40 * (isSprinting ? 2 : 1)
 
 			if (moveZ !== 0) {
 				velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta))
@@ -1188,16 +1206,39 @@
 			if (moveX !== 0) {
 				velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta))
 			}
-			if (moveUp) velocity.y += currentSpeed * delta
-			if (moveDown) velocity.y -= currentSpeed * delta
+
+			if (moveUp && (isUnderwater || freeFlight)) velocity.y += currentSpeed * delta
+			if (moveDown && (isUnderwater || freeFlight)) {
+				velocity.y -= currentSpeed * delta
+			}
 
 			const nextPos = camera.position.clone().add(
 				velocity.clone().multiplyScalar(delta),
 			)
-			const terrainH = 1 + getTerrainHeight(nextPos.x, nextPos.z)
-			if (nextPos.y < terrainH) {
-				nextPos.y = terrainH
-				velocity.set(0, 0, 0)
+			const terrainH = 2 + getTerrainHeight(nextPos.x, nextPos.z)
+
+			if (!freeFlight) {
+				const gravity = -9.8
+				const buoyancy = 2.0
+
+				if (isUnderwater) {
+					// Water drag on Y axis prevents infinite acceleration
+					velocity.y *= 1 - 5.0 * delta
+					velocity.y += (gravity + buoyancy) * delta
+				} else {
+					// Pure earth gravity acceleration
+					velocity.y += gravity * delta
+				}
+
+				if (nextPos.y < terrainH) {
+					nextPos.y = terrainH
+					velocity.y = 0
+				}
+
+				if (isUnderwater && nextPos.y > 0) {
+					nextPos.y = 0
+					velocity.y = 0
+				}
 			}
 
 			camera.position.copy(nextPos)
