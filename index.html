@@ -1201,7 +1201,7 @@
 				velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta))
 			}
 
-			if (moveUp && (isUnderwater || freeFlight)) velocity.y += currentSpeed * delta
+			if (moveUp && (isUnderwater)) velocity.y += currentSpeed * (delta * 0.8)
 
 			const nextPos = camera.position.clone().add(
 				velocity.clone().multiplyScalar(delta),
