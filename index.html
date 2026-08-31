@@ -1139,10 +1139,11 @@
 				renderer.setClearColor(uwColor)
 				oceanMat.uniforms.uFogColor.value.copy(uwColor)
 				oceanMat.uniforms.uFogDensity.value = 0.1
-				rain.visible =
+				moonCrescent.visible =
+					rain.visible =
 					sky.visible =
 					stars.visible =
-					moonCrescent.visible =
+					sun.visible =
 						false
 				diveLight.visible = true
 				diveLight.position.copy(camera.position)
@@ -1158,7 +1159,12 @@
 				renderer.setClearColor(currentFogColor)
 				oceanMat.uniforms.uFogColor.value.copy(currentFogColor)
 				oceanMat.uniforms.uFogDensity.value = 0.02
-				rain.visible = sky.visible = stars.visible = true
+				moonCrescent.visible =
+					rain.visible =
+					sky.visible =
+					stars.visible =
+					sun.visible =
+						true
 				diveLight.visible = true
 				diveLight.position.copy(camera.position)
 				diveLight.target.position.copy(
