@@ -869,12 +869,66 @@
 		noiseGain.connect(lowPassFilter)
 		lowPassFilter.connect(audioCtx.destination)
 
+		// --- RAIN AUDIO SYSTEM ---
+		const rainNoiseBuffer = audioCtx.createBuffer(
+			1,
+			audioCtx.sampleRate * 2,
+			audioCtx.sampleRate,
+		)
+		const rainOutput = rainNoiseBuffer.getChannelData(0)
+		for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
+			rainOutput[i] = Math.random() * 2 - 1
+		}
+		const rainSource = audioCtx.createBufferSource()
+		rainSource.buffer = rainNoiseBuffer
+		rainSource.loop = true
+		const rainFilter = audioCtx.createBiquadFilter()
+		rainFilter.type = 'bandpass'
+		rainFilter.frequency.value = 1500
+		rainFilter.Q.value = 0.5
+		const rainGain = audioCtx.createGain()
+		rainGain.gain.value = 0
+		rainSource.connect(rainFilter).connect(rainGain).connect(lowPassFilter)
+
+		// --- THUNDER AUDIO SYSTEM ---
+		function playThunder() {
+			const thunderGain = audioCtx.createGain()
+			const thunderFilter = audioCtx.createBiquadFilter()
+			thunderFilter.type = 'lowpass'
+			thunderFilter.frequency.value = 350
+
+			const bufferSize = audioCtx.sampleRate * 3
+			const thunderBuffer = audioCtx.createBuffer(
+				1,
+				bufferSize,
+				audioCtx.sampleRate,
+			)
+			const data = thunderBuffer.getChannelData(0)
+			for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
+
+			const source = audioCtx.createBufferSource()
+			source.buffer = thunderBuffer
+
+			thunderGain.gain.setValueAtTime(0, audioCtx.currentTime)
+			thunderGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 0.1)
+			thunderGain.gain.exponentialRampToValueAtTime(
+				0.001,
+				audioCtx.currentTime + 2.5,
+			)
+
+			source.connect(thunderFilter).connect(thunderGain).connect(
+				audioCtx.destination,
+			)
+			source.start()
+		}
+
 		let audioStarted = false
 		const startAudio = () => {
 			if (!audioStarted) {
 				audioCtx.resume().then(() => {
 					noiseSource.start()
 					lfo.start()
+					rainSource.start()
 					noiseGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.1)
 					audioStarted = true
 				})
@@ -907,6 +961,7 @@
 		scene.add(rain)
 
 		let isRaining = urlParams.has('rain'), rainTimer = 60 * Math.random()
+		let lightningTimer = 0
 
 		const birds = [], birdGroup = new THREE.Group()
 		scene.add(birdGroup)
@@ -1158,11 +1213,42 @@
 					new THREE.Color().copy(targetHorizon).lerp(rainColor, 0.7),
 					COLOR_LERP_SPEED,
 				)
+
+				// Handle rain sound volume
+				if (audioStarted) {
+					rainGain.gain.setTargetAtTime(0.15, audioCtx.currentTime, 0.5)
+				}
+
+				// Handle Lightning
+				lightningTimer -= delta
+				if (lightningTimer <= 0) {
+					lightningTimer = 10 + Math.random() * 30
+					if (Math.random() > 0.3) {
+						// Visual flash
+						const flashColor = new THREE.Color(0xeeeeff)
+						const originalAmb = ambientLight.intensity
+						const originalDir = directionalLight.intensity
+						ambientLight.intensity = 10
+						directionalLight.intensity = 10
+						setTimeout(() => {
+							ambientLight.intensity = originalAmb
+							directionalLight.intensity = originalDir
+						}, 50 + Math.random() * 100)
+
+						// Thunder sound (delayed)
+						setTimeout(() => {
+							if (audioStarted) playThunder()
+						}, 500 + Math.random() * 2000)
+					}
+				}
 			} else {
 				rainMat.opacity = THREE.MathUtils.lerp(rainMat.opacity, 0, 0.01)
 				currentFogColor.lerp(targetHorizon, COLOR_LERP_SPEED)
 				currentSkyColor.lerp(targetSky, COLOR_LERP_SPEED)
 				currentHorizonColor.lerp(targetHorizon, COLOR_LERP_SPEED)
+				if (audioStarted) {
+					rainGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5)
+				}
 			}
 
 			skyMat.uniforms.uSkyColor.value.copy(currentSkyColor)
