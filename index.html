@@ -676,8 +676,7 @@
 			moveLeft = false,
 			moveRight = false,
 			moveUp = false,
-			isSprinting = false,
-			freeFlight = false
+			isSprinting = false
 		let joyX = 0, joyY = 0, lookX = 0, lookY = 0
 		const velocity = new THREE.Vector3()
 
@@ -688,10 +687,6 @@
 			if (e.code === 'KeyD') moveRight = true
 			if (e.code === 'Space') moveUp = true
 			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
-			if (e.ctrlKey && e.code === 'Tab') {
-				e.preventDefault()
-				freeFlight = !freeFlight
-			}
 		})
 		document.addEventListener('keyup', (e) => {
 			if (e.code === 'KeyW') moveForward = false
@@ -1185,12 +1180,10 @@
 			const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
 			const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
 
-			if (!freeFlight) {
-				forward.y = 0
-				right.y = 0
-				forward.normalize()
-				right.normalize()
-			}
+			forward.y = 0
+			right.y = 0
+			forward.normalize()
+			right.normalize()
 
 			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY
 			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX
@@ -1212,30 +1205,28 @@
 			)
 			const terrainH = 2 + getTerrainHeight(nextPos.x, nextPos.z)
 
-			if (!freeFlight) {
-				const gravity = -9.8
-				const buoyancy = 2.0
+			const gravity = -9.8
+			const buoyancy = 2.0
 
-				if (isUnderwater) {
-					velocity.y *= 1 - 5.0 * delta
-					velocity.y += (gravity + buoyancy) * delta
+			if (isUnderwater) {
+				velocity.y *= 1 - 5.0 * delta
+				velocity.y += (gravity + buoyancy) * delta
+			} else {
+				velocity.y += gravity * delta
+			}
+
+			if (nextPos.y < terrainH) {
+				nextPos.y = terrainH
+				if (moveUp) {
+					velocity.y = 5.0 // Jump
 				} else {
-					velocity.y += gravity * delta
-				}
-
-				if (nextPos.y < terrainH) {
-					nextPos.y = terrainH
-					if (moveUp) {
-						velocity.y = 5.0 // Jump
-					} else {
-						velocity.y = 0
-					}
-				}
-
-				if (isUnderwater && nextPos.y > 0) {
-					nextPos.y = 0
 					velocity.y = 0
 				}
+			}
+
+			if (isUnderwater && nextPos.y > 0) {
+				nextPos.y = 0
+				velocity.y = 0
 			}
 
 			camera.position.copy(nextPos)
