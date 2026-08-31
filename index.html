@@ -812,21 +812,70 @@
 		}
 
 		const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-		const audioEl = new Audio('ocean.ogg')
-		audioEl.loop = true
-		audioEl.crossOrigin = 'anonymous'
-		const source = audioCtx.createMediaElementSource(audioEl)
+
+		// White Noise Ocean Generator
+		const noiseBuffer = audioCtx.createBuffer(
+			1,
+			audioCtx.sampleRate * 2,
+			audioCtx.sampleRate,
+		)
+		const output = noiseBuffer.getChannelData(0)
+		for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
+			output[i] = Math.random() * 2 - 1
+		}
+
+		const noiseSource = audioCtx.createBufferSource()
+		noiseSource.buffer = noiseBuffer
+		noiseSource.loop = true
+
+		const noiseFilter = audioCtx.createBiquadFilter()
+		noiseFilter.type = 'lowpass'
+		noiseFilter.frequency.value = 2000
+
+		const noiseGain = audioCtx.createGain()
+		noiseGain.gain.value = 0
+
+		// LFO for surf waves
+		const waveLfo = audioCtx.createOscillator()
+		waveLfo.type = 'sine'
+		waveLfo.frequency.value = 3 // Wave period
+		const lfoGain = audioCtx.createGain()
+		lfoGain.gain.value = 0.3
+
+		noiseSource.connect(noiseFilter)
+		noiseFilter.connect(noiseGain)
+		noiseGain.connect(audioCtx.destination)
+
+		// Create a gain node to modulate volume for "waves"
+		const surfModulator = audioCtx.createGain()
+		surfModulator.gain.value = 0.01
+		noiseFilter.connect(surfModulator)
+		surfModulator.connect(noiseGain)
+
+		// Dynamic modulation
+		const lfo = audioCtx.createOscillator()
+		lfo.frequency.value = 0.2
+		const lfoGainNode = audioCtx.createGain()
+		lfoGainNode.gain.value = 0.8
+		lfo.connect(lfoGainNode)
+		lfoGainNode.connect(surfModulator.gain)
+
 		const lowPassFilter = audioCtx.createBiquadFilter()
 		lowPassFilter.type = 'lowpass'
 		lowPassFilter.frequency.value = 22000
-		source.connect(lowPassFilter)
+
+		// Rewire to include the final lowpass
+		noiseGain.disconnect()
+		noiseGain.connect(lowPassFilter)
 		lowPassFilter.connect(audioCtx.destination)
 
 		let audioStarted = false
 		const startAudio = () => {
 			if (!audioStarted) {
 				audioCtx.resume().then(() => {
-					audioEl.play().catch(() => {})
+					noiseSource.start()
+					lfo.start()
+					noiseGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.1)
 					audioStarted = true
 				})
 			}
@@ -1269,7 +1318,11 @@
 			updateFish(delta, time)
 			updateHUD(time)
 			if (audioStarted) {
-				audioEl.volume = Math.max(0, Math.min(1, 1 - (camera.position.y / 30)))
+				noiseGain.gain.setTargetAtTime(
+					Math.max(0, Math.min(0.2, 0.2 * (1 - (camera.position.y / 30)))),
+					audioCtx.currentTime,
+					0.1,
+				)
 				lowPassFilter.frequency.setTargetAtTime(
 					camera.position.y < -1 ? 400 : 22000,
 					audioCtx.currentTime,
