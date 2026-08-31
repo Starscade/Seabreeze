@@ -136,8 +136,7 @@
 			<div class="knob" id="look-knob"></div>
 		</div>
 		<div id="height-controls">
-			<div class="btn" id="btn-up">UP</div>
-			<div class="btn" id="btn-down">DN</div>
+			<div class="btn" id="btn-jump">Jump</div>
 		</div>
 
 		<script
@@ -672,7 +671,6 @@
 			moveLeft = false,
 			moveRight = false,
 			moveUp = false,
-			moveDown = false,
 			isSprinting = false,
 			freeFlight = false
 		let joyX = 0, joyY = 0, lookX = 0, lookY = 0
@@ -683,8 +681,7 @@
 			if (e.code === 'KeyS') moveBackward = true
 			if (e.code === 'KeyA') moveLeft = true
 			if (e.code === 'KeyD') moveRight = true
-			if (e.code === 'KeyE') moveUp = true
-			if (e.code === 'KeyQ') moveDown = true
+			if (e.code === 'Space') moveUp = true
 			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
 			if (e.ctrlKey && e.code === 'Tab') {
 				e.preventDefault()
@@ -696,8 +693,7 @@
 			if (e.code === 'KeyS') moveBackward = false
 			if (e.code === 'KeyA') moveLeft = false
 			if (e.code === 'KeyD') moveRight = false
-			if (e.code === 'KeyE') moveUp = false
-			if (e.code === 'KeyQ') moveDown = false
+			if (e.code === 'Space') moveUp = false
 			if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false
 		})
 
@@ -752,21 +748,13 @@
 			lookY = y
 		})
 
-		document.getElementById('btn-up').addEventListener('touchstart', (e) => {
+		document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
 			e.preventDefault()
 			moveUp = true
 		})
-		document.getElementById('btn-up').addEventListener(
+		document.getElementById('btn-jump').addEventListener(
 			'touchend',
 			() => moveUp = false,
-		)
-		document.getElementById('btn-down').addEventListener('touchstart', (e) => {
-			e.preventDefault()
-			moveDown = true
-		})
-		document.getElementById('btn-down').addEventListener(
-			'touchend',
-			() => moveDown = false,
 		)
 
 		const compassEl = document.getElementById('compass'),
@@ -999,7 +987,6 @@
 			lookY = Math.abs(gp.axes[2]) > 0.1 || Math.abs(gp.axes[3]) > 0.1
 				? gp.axes[3]
 				: 0
-			moveDown = gp.buttons[4].pressed
 			moveUp = gp.buttons[5].pressed
 			isSprinting = gp.buttons[10].pressed
 		}
@@ -1180,8 +1167,6 @@
 
 			underwaterMaterial.uniforms.uTime.value = time * 0.001
 
-			// PHYSICS CORRECTED:
-			// 1. Separate Drag: Horizontal drag stays, Vertical drag removed so gravity can accumulate.
 			const drag = 1 - 15.0 * delta
 			velocity.x *= drag
 			velocity.z *= drag
@@ -1198,7 +1183,9 @@
 
 			const moveZ = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0) - joyY
 			const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX
-			const currentSpeed = 40 * (isSprinting ? 2 : 1)
+
+			let currentSpeed = 40 * (isSprinting ? 2 : 1)
+			if (isUnderwater) currentSpeed *= 0.5
 
 			if (moveZ !== 0) {
 				velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta))
@@ -1208,9 +1195,6 @@
 			}
 
 			if (moveUp && (isUnderwater || freeFlight)) velocity.y += currentSpeed * delta
-			if (moveDown && (isUnderwater || freeFlight)) {
-				velocity.y -= currentSpeed * delta
-			}
 
 			const nextPos = camera.position.clone().add(
 				velocity.clone().multiplyScalar(delta),
@@ -1222,17 +1206,19 @@
 				const buoyancy = 2.0
 
 				if (isUnderwater) {
-					// Water drag on Y axis prevents infinite acceleration
 					velocity.y *= 1 - 5.0 * delta
 					velocity.y += (gravity + buoyancy) * delta
 				} else {
-					// Pure earth gravity acceleration
 					velocity.y += gravity * delta
 				}
 
 				if (nextPos.y < terrainH) {
 					nextPos.y = terrainH
-					velocity.y = 0
+					if (moveUp) {
+						velocity.y = 5.0 // Jump
+					} else {
+						velocity.y = 0
+					}
 				}
 
 				if (isUnderwater && nextPos.y > 0) {
