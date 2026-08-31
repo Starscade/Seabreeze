@@ -32,7 +32,7 @@
 			overflow: hidden;
 			background: #87CEEB;
 			font-family: 'Caacupe One', sans-serif;
-			font-size: 14pt;
+			font-size: 6vmin;
 			touch-action: none;
 		}
 
@@ -78,19 +78,14 @@
 			pointer-events: none;
 		}
 
-		#altimeter {
-			opacity: 0.9;
-		}
-
 		#compass {
+			font-size: 200%;
 			font-weight: bold;
-			font-size: 2rem;
 			letter-spacing: 2px;
-			margin-bottom: 5px;
 		}
 
 		#game-clock {
-			opacity: 0.9;
+			display: none;
 		}
 
 		#height-controls {
@@ -1201,7 +1196,7 @@
 				velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta))
 			}
 
-			if (moveUp && (isUnderwater)) velocity.y += currentSpeed * (delta * 0.8)
+			if (moveUp && isUnderwater) velocity.y += currentSpeed * (delta * 0.8)
 
 			const nextPos = camera.position.clone().add(
 				velocity.clone().multiplyScalar(delta),
