@@ -483,7 +483,10 @@
 
 		const trunkMat = new THREE.MeshToonMaterial({ color: 0x8B4513 })
 		const leafMat = new THREE.MeshToonMaterial({ color: 0x228B22 })
-		const boulderMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa })
+		const boulderMat = new THREE.MeshLambertMaterial({
+			color: 0xaaaaaa,
+			clippingPlanes: [terrainClippingPlane],
+		})
 
 		function getTerrainHeight(x, z) {
 			const rawHeight = simplexNoise(x, z, seedOffset)
@@ -1125,7 +1128,7 @@
 				}
 			}
 
-			const isUnderwater = camera.position.y < -1
+			const isUnderwater = camera.position.y < ocean.position.y
 			if (isUnderwater) {
 				const uwColor = new THREE.Color().lerpColors(
 					new THREE.Color(0x020a15),
