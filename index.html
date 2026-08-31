@@ -922,6 +922,34 @@
 			source.start()
 		}
 
+		// --- FOOTSTEPS AUDIO SYSTEM ---
+		function playFootstep() {
+			if (!audioStarted) return
+			const stepGain = audioCtx.createGain()
+			const stepFilter = audioCtx.createBiquadFilter()
+			stepFilter.type = 'bandpass'
+			stepFilter.frequency.value = 400 + Math.random() * 400
+			stepFilter.Q.value = 1
+
+			const bufferSize = audioCtx.sampleRate * 0.1
+			const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate)
+			const data = buffer.getChannelData(0)
+			for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
+
+			const source = audioCtx.createBufferSource()
+			source.buffer = buffer
+
+			stepGain.gain.setValueAtTime(0, audioCtx.currentTime)
+			stepGain.gain.linearRampToValueAtTime(
+				0.05 + Math.random() * 0.05,
+				audioCtx.currentTime + 0.01,
+			)
+			stepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1)
+
+			source.connect(stepFilter).connect(stepGain).connect(lowPassFilter)
+			source.start()
+		}
+
 		let audioStarted = false
 		const startAudio = () => {
 			if (!audioStarted) {
@@ -1086,6 +1114,7 @@
 			currentHorizonColor = new THREE.Color()
 		const COLOR_LERP_SPEED = 0.005
 		let isFirstFrame = true, gamepadIndex = null
+		let footstepTimer = 0
 
 		window.addEventListener('gamepadconnected', (e) => {
 			if (gamepadIndex === null) gamepadIndex = e.gamepad.index
@@ -1385,6 +1414,20 @@
 			moonCrescent.position.copy(camera.position).add(
 				new THREE.Vector3(-moonDist * 0.707, moonDist * 0.707, -moonDist * 0.707),
 			)
+
+			// --- FOOTSTEP LOGIC ---
+			if (
+				!isUnderwater && nextPos.y <= terrainH + 0.1 &&
+				(Math.abs(velocity.x) > 0.5 || Math.abs(velocity.z) > 0.5)
+			) {
+				footstepTimer -= delta
+				if (footstepTimer <= 0) {
+					playFootstep()
+					footstepTimer = isSprinting ? 0.3 : 0.5
+				}
+			} else {
+				footstepTimer = 0
+			}
 
 			const rainPositions = rainGeo.attributes.position.array
 			for (let i = 0; i < rainCount; i++) {
