@@ -1257,7 +1257,7 @@
 			updateFish(delta, time)
 			updateHUD(time)
 			if (audioStarted) {
-				audioEl.volume = Math.max(0, Math.min(1, 1 - (camera.position.y / 100)))
+				audioEl.volume = Math.max(0, Math.min(1, 1 - (camera.position.y / 30)))
 				lowPassFilter.frequency.setTargetAtTime(
 					camera.position.y < -1 ? 400 : 22000,
 					audioCtx.currentTime,
