@@ -612,7 +612,14 @@
 			}
 		}
 
-		camera.position.set(0, 10, 0)
+		// Find spawn position on land
+		let spawnX = 0, spawnZ = 0
+		while (true) {
+			spawnX = (Math.random() - 0.5) * 100
+			spawnZ = (Math.random() - 0.5) * 100
+			if (getTerrainHeight(spawnX, spawnZ) > 0) break
+		}
+		camera.position.set(spawnX, 10, spawnZ)
 
 		const oceanGeo = new THREE.PlaneGeometry(1000, 1000, 768, 768)
 		oceanGeo.rotateX(-Math.PI / 2)
