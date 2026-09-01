@@ -634,11 +634,12 @@ setupJoystick('look-joy', 'look-knob', (x, y) => {
 	lookY = y
 })
 
-document.getElementById('btn-jump').addEventListener('touchstart', (e) => {
+const jumpBtn = document.getElementById('btn-jump')
+jumpBtn.addEventListener('touchstart', (e) => {
 	e.preventDefault()
 	moveUp = true
 })
-document.getElementById('btn-jump').addEventListener(
+jumpBtn.addEventListener(
 	'touchend',
 	() => moveUp = false,
 )
@@ -1200,6 +1201,7 @@ function animateFixed() {
 		)
 		terrainClippingPlane.constant = 1000
 		underwaterMaterial.uniforms.uUnderwater.value = 1.0
+		jumpBtn.textContent = 'Swim'
 	} else {
 		scene.fog = new THREE.FogExp2(currentFogColor, 0.01)
 		renderer.setClearColor(currentFogColor)
@@ -1220,6 +1222,7 @@ function animateFixed() {
 		)
 		terrainClippingPlane.constant = 2
 		underwaterMaterial.uniforms.uUnderwater.value = 0.0
+		jumpBtn.textContent = 'Jump'
 	}
 
 	underwaterMaterial.uniforms.uTime.value = time * 0.001
