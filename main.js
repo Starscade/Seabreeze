@@ -1192,13 +1192,6 @@ function animateFixed() {
 			stars.visible =
 			sun.visible =
 				false
-		diveLight.visible = true
-		diveLight.position.copy(camera.position)
-		diveLight.target.position.copy(
-			new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(
-				camera.position,
-			),
-		)
 		terrainClippingPlane.constant = 1000
 		underwaterMaterial.uniforms.uUnderwater.value = 1.0
 		jumpBtn.textContent = 'Swim'
@@ -1213,19 +1206,19 @@ function animateFixed() {
 			stars.visible =
 			sun.visible =
 				true
-		diveLight.visible = true
-		diveLight.position.copy(camera.position)
-		diveLight.target.position.copy(
-			new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(
-				camera.position,
-			),
-		)
 		terrainClippingPlane.constant = 2
 		underwaterMaterial.uniforms.uUnderwater.value = 0.0
 		jumpBtn.textContent = 'Jump'
 	}
 
 	underwaterMaterial.uniforms.uTime.value = time * 0.001
+
+	diveLight.position.copy(camera.position)
+	diveLight.target.position.copy(
+		new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(
+			camera.position,
+		),
+	)
 
 	const drag = 1 - 15.0 * delta
 	velocity.x *= drag
