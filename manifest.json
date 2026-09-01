@@ -1,8 +1,10 @@
 {
-	"background_color": "lightskyblue",
+	"background_color": "black",
 	"display": "standalone",
 	"display_override": [
-		"fullscreen"
+		"fullscreen",
+		"window-controls-overlay",
+		"minimal-ui"
 	],
 	"icons": [
 		{
@@ -33,5 +35,5 @@
 	],
 	"short_name": "Seabreeze",
 	"start_url": ".",
-	"theme_color": "lightskyblue"
+	"theme_color": "black"
 }
