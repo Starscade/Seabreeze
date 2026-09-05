@@ -488,14 +488,14 @@ function updateChunks() {
 			scene.remove(group)
 			group.traverse((child) => {
 				if (child.geometry) child.geometry.dispose()
-				if (child.material) child.material.dispose()
+				if (child.material && child.material.dispose) child.material.dispose()
 			})
 			chunks.delete(key)
 		}
 	}
 }
 
-// Find spawn position on land
+// Find spawn position on land.
 let spawnX = 0, spawnZ = 0
 while (true) {
 	spawnX = (Math.random() - 0.5) * 100
@@ -1392,4 +1392,10 @@ window.addEventListener('DOMContentLoaded', () => {
 	}
 	animateFixed()
 	expand()
+})
+
+window.addEventListener('beforeunload', () => {
+	if (audioCtx) {
+		audioCtx.close()
+	}
 })
