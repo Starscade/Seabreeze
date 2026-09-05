@@ -349,6 +349,11 @@ const boulderMat = new THREE.MeshLambertMaterial({
 	clippingPlanes: [terrainClippingPlane],
 })
 
+const terrainMaterial = new THREE.MeshLambertMaterial({
+	vertexColors: true,
+	clippingPlanes: [terrainClippingPlane],
+})
+
 // InstancedMesh Setup
 const treeTrunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 6, 3)
 const treeLeafGeo = new THREE.ConeGeometry(2, 7, 3)
@@ -420,13 +425,7 @@ function createChunk(cx, cz) {
 	}
 	geo.computeVertexNormals()
 	geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
-	const mesh = new THREE.Mesh(
-		geo,
-		new THREE.MeshLambertMaterial({
-			vertexColors: true,
-			clippingPlanes: [terrainClippingPlane],
-		}),
-	)
+	const mesh = new THREE.Mesh(geo, terrainMaterial)
 	mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE)
 
 	const container = new THREE.Group()
@@ -487,8 +486,6 @@ function updateChunks() {
 		) {
 			scene.remove(group)
 			group.traverse((child) => {
-				// CRITICAL: Dispose of unique geometry but NEVER shared materials
-				// Disposing of shared materials causes GPU memory corruption (SIGILL)
 				if (child.geometry) child.geometry.dispose()
 			})
 			chunks.delete(key)
