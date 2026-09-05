@@ -723,7 +723,7 @@ function initAudio() {
 	surfModulator.gain.value = 0.01
 
 	lfo = audioCtx.createOscillator()
-	lfo.frequency.value = 0.2
+	lfo.frequency.value = 0.1
 	const lfoGainNode = audioCtx.createGain()
 	lfoGainNode.gain.value = 0.8
 	lfo.connect(lfoGainNode)
