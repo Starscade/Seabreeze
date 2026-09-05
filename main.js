@@ -559,7 +559,8 @@ let moveForward = false,
 	moveLeft = false,
 	moveRight = false,
 	moveUp = false,
-	isSprinting = false
+	isSprinting = false,
+	canJump = true
 let joyX = 0, joyY = 0, lookX = 0, lookY = 0
 const velocity = new THREE.Vector3()
 
@@ -568,7 +569,10 @@ document.addEventListener('keydown', (e) => {
 	if (e.code === 'KeyS') moveBackward = true
 	if (e.code === 'KeyA') moveLeft = true
 	if (e.code === 'KeyD') moveRight = true
-	if (e.code === 'Space') moveUp = true
+	if (e.code === 'Space') {
+		moveUp = true
+		if (!canJump) moveUp = false
+	}
 	if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
 })
 document.addEventListener('keyup', (e) => {
@@ -576,7 +580,10 @@ document.addEventListener('keyup', (e) => {
 	if (e.code === 'KeyS') moveBackward = false
 	if (e.code === 'KeyA') moveLeft = false
 	if (e.code === 'KeyD') moveRight = false
-	if (e.code === 'Space') moveUp = false
+	if (e.code === 'Space') {
+		moveUp = false
+		canJump = true
+	}
 	if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false
 })
 
@@ -634,11 +641,17 @@ setupJoystick('look-joy', 'look-knob', (x, y) => {
 const jumpBtn = document.getElementById('btn-jump')
 jumpBtn.addEventListener('touchstart', (e) => {
 	e.preventDefault()
-	moveUp = true
+	if (canJump) {
+		moveUp = true
+		canJump = false
+	}
 })
 jumpBtn.addEventListener(
 	'touchend',
-	() => moveUp = false,
+	() => {
+		moveUp = false
+		canJump = true
+	},
 )
 
 const compassEl = document.getElementById('compass'),
@@ -1219,7 +1232,7 @@ function animateFixed() {
 	const moveX = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0) + joyX
 
 	let currentSpeed = 40 * (isSprinting ? 2 : 1)
-	if (isUnderwater) currentSpeed *= 0.5
+	if (isUnderwater) currentSpeed = 20
 
 	if (moveZ !== 0) {
 		velocity.add(forward.clone().multiplyScalar(moveZ * currentSpeed * delta))
@@ -1228,7 +1241,10 @@ function animateFixed() {
 		velocity.add(right.clone().multiplyScalar(moveX * currentSpeed * delta))
 	}
 
-	if (moveUp && isUnderwater) velocity.y += currentSpeed * (delta * 0.8)
+	if (moveUp && isUnderwater) {
+		velocity.y += currentSpeed * delta
+		canJump = false
+	}
 
 	const nextPos = camera.position.clone().add(
 		velocity.clone().multiplyScalar(delta),
@@ -1247,8 +1263,9 @@ function animateFixed() {
 
 	if (nextPos.y < terrainH) {
 		nextPos.y = terrainH
-		if (moveUp) {
+		if (moveUp && canJump) {
 			velocity.y = 5.0 // Jump
+			canJump = false
 		} else {
 			velocity.y = 0
 		}
