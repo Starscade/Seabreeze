@@ -262,7 +262,7 @@ function updateClouds() {
 	cloudGroup.position.x = -windOffset
 }
 
-const renderTarget = new THREE.WebGLRenderTarget(
+let renderTarget = new THREE.WebGLRenderTarget(
 	window.innerWidth,
 	window.innerHeight,
 )
@@ -487,15 +487,15 @@ function updateChunks() {
 		) {
 			scene.remove(group)
 			group.traverse((child) => {
+				// CRITICAL: Dispose of unique geometry but NEVER shared materials
+				// Disposing of shared materials causes GPU memory corruption (SIGILL)
 				if (child.geometry) child.geometry.dispose()
-				if (child.material && child.material.dispose) child.material.dispose()
 			})
 			chunks.delete(key)
 		}
 	}
 }
 
-// Find spawn position on land.
 let spawnX = 0, spawnZ = 0
 while (true) {
 	spawnX = (Math.random() - 0.5) * 100
@@ -683,92 +683,93 @@ if (timeParam && timeParam.length === 4) {
 	}
 }
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+let audioCtx = null
+let noiseSource,
+	noiseFilter,
+	noiseGain,
+	lfo,
+	surfModulator,
+	lowPassFilter,
+	rainSource,
+	rainFilter,
+	rainGain
 
-// White Noise Ocean Generator
-const noiseBuffer = audioCtx.createBuffer(
-	1,
-	audioCtx.sampleRate * 2,
-	audioCtx.sampleRate,
-)
-const output = noiseBuffer.getChannelData(0)
-for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
-	output[i] = Math.random() * 2 - 1
+function initAudio() {
+	if (audioCtx) return
+	audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+
+	const noiseBuffer = audioCtx.createBuffer(
+		1,
+		audioCtx.sampleRate * 2,
+		audioCtx.sampleRate,
+	)
+	const output = noiseBuffer.getChannelData(0)
+	for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
+		output[i] = Math.random() * 2 - 1
+	}
+
+	noiseSource = audioCtx.createBufferSource()
+	noiseSource.buffer = noiseBuffer
+	noiseSource.loop = true
+
+	noiseFilter = audioCtx.createBiquadFilter()
+	noiseFilter.type = 'lowpass'
+	noiseFilter.frequency.value = 2000
+
+	noiseGain = audioCtx.createGain()
+	noiseGain.gain.value = 0
+
+	surfModulator = audioCtx.createGain()
+	surfModulator.gain.value = 0.01
+
+	lfo = audioCtx.createOscillator()
+	lfo.frequency.value = 0.2
+	const lfoGainNode = audioCtx.createGain()
+	lfoGainNode.gain.value = 0.8
+	lfo.connect(lfoGainNode)
+	lfoGainNode.connect(surfModulator.gain)
+
+	lowPassFilter = audioCtx.createBiquadFilter()
+	lowPassFilter.type = 'lowpass'
+	lowPassFilter.frequency.value = 22000
+
+	noiseSource.connect(noiseFilter)
+	noiseFilter.connect(surfModulator)
+	surfModulator.connect(noiseGain)
+	noiseGain.connect(lowPassFilter)
+	lowPassFilter.connect(audioCtx.destination)
+
+	const rainNoiseBuffer = audioCtx.createBuffer(
+		1,
+		audioCtx.sampleRate * 2,
+		audioCtx.sampleRate,
+	)
+	const rainOutput = rainNoiseBuffer.getChannelData(0)
+	for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
+		rainOutput[i] = Math.random() * 2 - 1
+	}
+	rainSource = audioCtx.createBufferSource()
+	rainSource.buffer = rainNoiseBuffer
+	rainSource.loop = true
+	rainFilter = audioCtx.createBiquadFilter()
+	rainFilter.type = 'bandpass'
+	rainFilter.frequency.value = 1500
+	rainFilter.Q.value = 0.5
+	rainGain = audioCtx.createGain()
+	rainGain.gain.value = 0
+	rainSource.connect(rainFilter).connect(rainGain).connect(lowPassFilter)
+
+	noiseSource.start()
+	lfo.start()
+	rainSource.start()
 }
 
-const noiseSource = audioCtx.createBufferSource()
-noiseSource.buffer = noiseBuffer
-noiseSource.loop = true
-
-const noiseFilter = audioCtx.createBiquadFilter()
-noiseFilter.type = 'lowpass'
-noiseFilter.frequency.value = 2000
-
-const noiseGain = audioCtx.createGain()
-noiseGain.gain.value = 0
-
-// LFO for surf waves
-const waveLfo = audioCtx.createOscillator()
-waveLfo.type = 'sine'
-waveLfo.frequency.value = 3 // Wave period
-const lfoGain = audioCtx.createGain()
-lfoGain.gain.value = 0.3
-
-noiseSource.connect(noiseFilter)
-noiseFilter.connect(noiseGain)
-noiseGain.connect(audioCtx.destination)
-
-// Create a gain node to modulate volume for "waves"
-const surfModulator = audioCtx.createGain()
-surfModulator.gain.value = 0.01
-noiseFilter.connect(surfModulator)
-surfModulator.connect(noiseGain)
-
-// Dynamic modulation
-const lfo = audioCtx.createOscillator()
-lfo.frequency.value = 0.2
-const lfoGainNode = audioCtx.createGain()
-lfoGainNode.gain.value = 0.8
-lfo.connect(lfoGainNode)
-lfoGainNode.connect(surfModulator.gain)
-
-const lowPassFilter = audioCtx.createBiquadFilter()
-lowPassFilter.type = 'lowpass'
-lowPassFilter.frequency.value = 22000
-
-// Rewire to include the final lowpass
-noiseGain.disconnect()
-noiseGain.connect(lowPassFilter)
-lowPassFilter.connect(audioCtx.destination)
-
-// --- RAIN AUDIO SYSTEM ---
-const rainNoiseBuffer = audioCtx.createBuffer(
-	1,
-	audioCtx.sampleRate * 2,
-	audioCtx.sampleRate,
-)
-const rainOutput = rainNoiseBuffer.getChannelData(0)
-for (let i = 0; i < audioCtx.sampleRate * 2; i++) {
-	rainOutput[i] = Math.random() * 2 - 1
-}
-const rainSource = audioCtx.createBufferSource()
-rainSource.buffer = rainNoiseBuffer
-rainSource.loop = true
-const rainFilter = audioCtx.createBiquadFilter()
-rainFilter.type = 'bandpass'
-rainFilter.frequency.value = 1500
-rainFilter.Q.value = 0.5
-const rainGain = audioCtx.createGain()
-rainGain.gain.value = 0
-rainSource.connect(rainFilter).connect(rainGain).connect(lowPassFilter)
-
-// --- THUNDER AUDIO SYSTEM ---
 function playThunder() {
+	if (!audioCtx) return
 	const thunderGain = audioCtx.createGain()
 	const thunderFilter = audioCtx.createBiquadFilter()
 	thunderFilter.type = 'lowpass'
 	thunderFilter.frequency.value = 350
-
 	const bufferSize = audioCtx.sampleRate * 3
 	const thunderBuffer = audioCtx.createBuffer(
 		1,
@@ -777,58 +778,48 @@ function playThunder() {
 	)
 	const data = thunderBuffer.getChannelData(0)
 	for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
-
 	const source = audioCtx.createBufferSource()
 	source.buffer = thunderBuffer
-
 	thunderGain.gain.setValueAtTime(0, audioCtx.currentTime)
 	thunderGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 0.1)
 	thunderGain.gain.exponentialRampToValueAtTime(
 		0.001,
 		audioCtx.currentTime + 2.5,
 	)
-
 	source.connect(thunderFilter).connect(thunderGain).connect(
 		audioCtx.destination,
 	)
 	source.start()
 }
 
-// --- FOOTSTEPS AUDIO SYSTEM ---
 function playFootstep() {
-	if (!audioStarted) return
+	if (!audioCtx || !audioStarted) return
 	const stepGain = audioCtx.createGain()
 	const stepFilter = audioCtx.createBiquadFilter()
 	stepFilter.type = 'bandpass'
 	stepFilter.frequency.value = 400 + Math.random() * 400
 	stepFilter.Q.value = 1
-
 	const bufferSize = audioCtx.sampleRate * 0.1
 	const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate)
 	const data = buffer.getChannelData(0)
 	for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
-
 	const source = audioCtx.createBufferSource()
 	source.buffer = buffer
-
 	stepGain.gain.setValueAtTime(0, audioCtx.currentTime)
 	stepGain.gain.linearRampToValueAtTime(
 		0.05 + Math.random() * 0.05,
 		audioCtx.currentTime + 0.01,
 	)
 	stepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1)
-
 	source.connect(stepFilter).connect(stepGain).connect(lowPassFilter)
 	source.start()
 }
 
 let audioStarted = false
 const startAudio = () => {
-	if (!audioStarted) {
+	initAudio()
+	if (audioCtx && !audioStarted) {
 		audioCtx.resume().then(() => {
-			noiseSource.start()
-			lfo.start()
-			rainSource.start()
 			noiseGain.gain.setTargetAtTime(0.2, audioCtx.currentTime, 0.1)
 			audioStarted = true
 		})
@@ -1116,18 +1107,14 @@ function animateFixed() {
 			COLOR_LERP_SPEED,
 		)
 
-		// Handle rain sound volume
-		if (audioStarted) {
+		if (audioStarted && rainGain) {
 			rainGain.gain.setTargetAtTime(0.15, audioCtx.currentTime, 0.5)
 		}
 
-		// Handle Lightning
 		lightningTimer -= delta
 		if (lightningTimer <= 0) {
 			lightningTimer = 10 + Math.random() * 30
 			if (Math.random() > 0.3) {
-				// Visual flash
-				const flashColor = new THREE.Color(0xeeeeff)
 				const originalAmb = ambientLight.intensity
 				const originalDir = directionalLight.intensity
 				ambientLight.intensity = 10
@@ -1137,9 +1124,8 @@ function animateFixed() {
 					directionalLight.intensity = originalDir
 				}, 50 + Math.random() * 100)
 
-				// Thunder sound (delayed)
 				setTimeout(() => {
-					if (audioStarted) playThunder()
+					playThunder()
 				}, 500 + Math.random() * 2000)
 			}
 		}
@@ -1148,7 +1134,7 @@ function animateFixed() {
 		currentFogColor.lerp(targetHorizon, COLOR_LERP_SPEED)
 		currentSkyColor.lerp(targetSky, COLOR_LERP_SPEED)
 		currentHorizonColor.lerp(targetHorizon, COLOR_LERP_SPEED)
-		if (audioStarted) {
+		if (audioStarted && rainGain) {
 			rainGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5)
 		}
 	}
@@ -1319,7 +1305,7 @@ function animateFixed() {
 		lastHudUpdate = now
 	}
 
-	if (audioStarted) {
+	if (audioStarted && audioCtx) {
 		noiseGain.gain.setTargetAtTime(
 			Math.max(0, Math.min(0.2, 0.2 * (1 - (camera.position.y / 10)))),
 			audioCtx.currentTime,
@@ -1344,7 +1330,11 @@ window.addEventListener('resize', () => {
 	camera.aspect = window.innerWidth / window.innerHeight
 	camera.updateProjectionMatrix()
 	renderer.setSize(window.innerWidth, window.innerHeight)
-	renderTarget.setSize(window.innerWidth, window.innerHeight)
+	if (renderTarget) renderTarget.dispose()
+	renderTarget = new THREE.WebGLRenderTarget(
+		window.innerWidth,
+		window.innerHeight,
+	)
 })
 
 window.addEventListener('pointerlockchange', () => {
@@ -1395,7 +1385,7 @@ window.addEventListener('DOMContentLoaded', () => {
 })
 
 window.addEventListener('beforeunload', () => {
-	if (audioCtx) {
-		audioCtx.close()
-	}
+	if (audioCtx) audioCtx.close()
+	if (renderTarget) renderTarget.dispose()
+	renderer.dispose()
 })
