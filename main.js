@@ -1398,8 +1398,40 @@ window.addEventListener('DOMContentLoaded', () => {
 	expand()
 })
 
-window.addEventListener('beforeunload', () => {
-	if (audioCtx) audioCtx.close()
+function cleanUpGPU() {
+	const disposed = new Set()
+
+	scene.traverse((obj) => {
+		if (obj.geometry) {
+			if (!disposed.has(obj.geometry)) {
+				obj.geometry.dispose()
+				disposed.add(obj.geometry)
+			}
+		}
+		if (obj.material) {
+			const materials = Array.isArray(obj.material)
+				? obj.material
+				: [obj.material]
+			materials.forEach((mat) => {
+				if (!disposed.has(mat)) {
+					mat.dispose()
+					disposed.add(mat)
+				}
+				if (mat.map) {
+					if (!disposed.has(mat.map)) {
+						mat.map.dispose()
+						disposed.add(mat.map)
+					}
+				}
+			})
+		}
+	})
+
 	if (renderTarget) renderTarget.dispose()
-	renderer.dispose()
+	if (renderer) renderer.dispose()
+	if (audioCtx) audioCtx.close()
+}
+
+window.addEventListener('beforeunload', () => {
+	cleanUpGPU()
 })
