@@ -375,6 +375,8 @@ function getTerrainNormal(x, z) {
 	return new THREE.Vector3(hL - hR, 2 * eps, hD - hU).normalize()
 }
 
+const tempMatrix = new THREE.Matrix4()
+
 function createChunk(cx, cz) {
 	const geo = new THREE.PlaneGeometry(
 		CHUNK_SIZE,
@@ -420,6 +422,11 @@ function createChunk(cx, cz) {
 		if (Math.random() < 0.1 && height < 15) {
 			if (height > 3 || (height > -1 && Math.random() < 0.01)) {
 				const mat = new THREE.Matrix4()
+
+				// Use the reusable tempMatrix to handle rotation without allocation
+				tempMatrix.makeRotationY(Math.random() * Math.PI * 2)
+				mat.multiply(tempMatrix)
+
 				mat.setPosition(worldX, height + 2.5, worldZ)
 				treeMatrices.push(mat)
 			}
