@@ -366,6 +366,15 @@ function getTerrainHeight(x, z) {
 		: rawHeight * 0.8 - 10
 }
 
+function getTerrainNormal(x, z) {
+	const eps = 0.1
+	const hL = getTerrainHeight(x - eps, z)
+	const hR = getTerrainHeight(x + eps, z)
+	const hD = getTerrainHeight(x, z - eps)
+	const hU = getTerrainHeight(x, z + eps)
+	return new THREE.Vector3(hL - hR, 2 * eps, hD - hU).normalize()
+}
+
 function createChunk(cx, cz) {
 	const geo = new THREE.PlaneGeometry(
 		CHUNK_SIZE,
@@ -418,8 +427,18 @@ function createChunk(cx, cz) {
 		if (Math.random() < 0.01 && height > -20) {
 			const mat = new THREE.Matrix4()
 			const s = Math.max(0.3, 2 * Math.random())
-			mat.makeScale(s, s * 0.7, s)
-			mat.setPosition(worldX, height + 0.15, worldZ)
+			const normal = getTerrainNormal(worldX, worldZ)
+
+			const quaternion = new THREE.Quaternion().setFromUnitVectors(
+				new THREE.Vector3(0, 1, 0),
+				normal,
+			)
+
+			mat.makeRotationFromQuaternion(quaternion)
+			mat.scale(new THREE.Vector3(s, s * 0.7, s))
+
+			const yOffset = s * 0.7 * (0.5 - 0.333)
+			mat.setPosition(worldX, height + yOffset, worldZ)
 			boulderMatrices.push(mat)
 		}
 	}
