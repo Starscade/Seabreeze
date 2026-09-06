@@ -586,7 +586,8 @@ let moveForward = false,
 	moveRight = false,
 	moveUp = false,
 	isSprinting = false,
-	canJump = true
+	isGrounded = false,
+	jumpLock = false
 let joyX = 0, joyY = 0, lookX = 0, lookY = 0
 const velocity = new THREE.Vector3()
 
@@ -597,7 +598,6 @@ document.addEventListener('keydown', (e) => {
 	if (e.code === 'KeyD') moveRight = true
 	if (e.code === 'Space') {
 		moveUp = true
-		if (!canJump) moveUp = false
 	}
 	if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = true
 })
@@ -608,7 +608,7 @@ document.addEventListener('keyup', (e) => {
 	if (e.code === 'KeyD') moveRight = false
 	if (e.code === 'Space') {
 		moveUp = false
-		canJump = true
+		jumpLock = false // Reset lock on release
 	}
 	if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') isSprinting = false
 })
@@ -667,16 +667,13 @@ setupJoystick('look-joy', 'look-knob', (x, y) => {
 const jumpBtn = document.getElementById('btn-jump')
 jumpBtn.addEventListener('touchstart', (e) => {
 	e.preventDefault()
-	if (canJump) {
-		moveUp = true
-		canJump = false
-	}
+	moveUp = true
 })
 jumpBtn.addEventListener(
 	'touchend',
 	() => {
 		moveUp = false
-		canJump = true
+		jumpLock = false // Reset lock on release
 	},
 )
 
@@ -1268,8 +1265,7 @@ function animateFixed() {
 	}
 
 	if (moveUp && isUnderwater) {
-		velocity.y += currentSpeed * delta
-		canJump = false
+		velocity.y += (currentSpeed * 0.6) * delta
 	}
 
 	const nextPos = camera.position.clone().add(
@@ -1289,12 +1285,16 @@ function animateFixed() {
 
 	if (nextPos.y < terrainH) {
 		nextPos.y = terrainH
-		if (moveUp && canJump) {
-			velocity.y = 5.0 // Jump
-			canJump = false
+		isGrounded = true
+
+		if (moveUp && !jumpLock) {
+			velocity.y = 5.0
+			jumpLock = true // Lock jump until button is released
 		} else {
 			velocity.y = 0
 		}
+	} else {
+		isGrounded = false
 	}
 
 	if (isUnderwater && nextPos.y > 0) {
