@@ -26,6 +26,12 @@
 			name="viewport"
 		>
 		<style>
+		:root {
+			--shadow: 0 0 2px Black;
+			--ui-fg: White;
+			--ui-bg: #ffffff33;
+		}
+
 		body {
 			margin: 0;
 			overflow: hidden;
@@ -42,14 +48,15 @@
 		.btn {
 			width: 60px;
 			height: 60px;
-			background: rgba(255,255,255,0.3);
-			border: 2px solid white;
+			background: var(--ui-bg);
+			border: 2px solid var(--ui-fg);
 			border-radius: 50%;
-			color: white;
+			color: var(--ui-fg);
 			font-weight: bold;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			text-shadow: var(--shadow);
 			user-select: none;
 			cursor: pointer;
 		}
@@ -59,10 +66,10 @@
 			bottom: 40px;
 			width: 120px;
 			height: 120px;
-			background: rgba(255,255,255,0.2);
+			background: var(--ui-bg);
 			border-radius: 50%;
 			touch-action: none;
-			border: 2px solid rgba(255,255,255,0.3);
+			border: 2px solid var(--ui-fg);
 			display: none;
 		}
 
@@ -72,8 +79,9 @@
 			left: 35px;
 			width: 50px;
 			height: 50px;
-			background: rgba(255,255,255,0.5);
+			background: var(--ui-fg);
 			border-radius: 50%;
+			box-shadow: var(--shadow);
 			pointer-events: none;
 		}
 
@@ -102,7 +110,7 @@
 			left: 50%;
 			transform: translateX(-50%);
 			color: white;
-			text-shadow: 1px 1px 2px black;
+			text-shadow: var(--shadow);
 			pointer-events: none;
 			text-align: center;
 		}
