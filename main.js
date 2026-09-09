@@ -1297,7 +1297,7 @@ function animateFixed() {
 		isGrounded = false
 	}
 
-	if (isUnderwater && nextPos.y > 0) {
+	if (isUnderwater && nextPos.y > ocean.position.y) {
 		nextPos.y = 0
 		velocity.y = 0
 	}
